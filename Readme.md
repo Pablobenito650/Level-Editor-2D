@@ -8,6 +8,14 @@
 
 Level Editor 2D est une application qui permet de creer des zone de jeux en 2D en se basant sur le systeme de grille et de tilemap.
 
+### Comment configurer le projet
+
+1. Au prealable telecharger ImGui depuis le github officiel (voir plus loin) et le mettre dans thirdparty/imgui
+2. Tout les nom d'images contenues dans Assets/Tiles doivent respecter le format id_nom_de_iamge.png pour pouvoir etre enregistrer dans le Tileset
+du projet et etre utiliser en tant que tuile. 
+3. Il faut eviter de Modifier le Fichier Tileset.txt soit meme et aussi avoir deux images dont le nom commence par le meme id.
+4. Garder le Tileset telquel pour eviter les surprise lors du chargement d'un niveau
+
 ## 📦 Structure du Projet
 
 ```
@@ -85,9 +93,3 @@ python Build.py
 2. R : Recentrer la camera scene
 3. Boutton droit de la souris : maintenir et deplacer la souris pour deplacer la camera scene
 
-### A savoir
-
-1. Tout les nom d'images contenues dans Assets/Tiles doivent respecter le format id_nom_de_iamge.png pour pouvoir etre enregistrer dans le Tileset
-du projet et etre utiliser en tant que tuile. 
-2. Il faut eviter de Modifier le Fichier Tileset.txt soit meme et aussi avoir deux images dont le nom commence par le meme id.
-3. Garder le Tileset telquel pour eviter les surprise lors du chargement d'un niveau
