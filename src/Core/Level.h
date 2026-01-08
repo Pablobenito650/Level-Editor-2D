@@ -10,6 +10,12 @@
 
 namespace minieditor
 {
+    struct TileForTS
+    {
+        int mID = 0;
+        std::string mName;
+    };
+
     /**
      * @brief caracteristiques d'une tile 
      */
@@ -127,6 +133,16 @@ namespace minieditor
              * @brief ecrire le fichier Tileset.txt (fichier qui fait le lien entre ID et iamge)
              */
             void WriteTileSet();
+
+            /**
+             * @brief recupere le numero (id) au debut du nom d'un fichier
+             */
+            int ExtractLeadingNumber(std::string name);
+
+            /**
+             * @brief bonne pratique : detruire les texture
+             */
+            void DestroyTextures();
     };
 } // namespace minieditor
 

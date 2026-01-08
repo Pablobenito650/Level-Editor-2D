@@ -70,17 +70,15 @@ namespace minieditor
                     rect.w = mtileSize;
                     rect.h = mtileSize;
 
-                    // Afficher la texture s'il y a une texture correspondante a l'ID
-                    // Afficher un carre de debug sinon
-                    if(IDIsUsed(_tileID))
-                    {
-                        SDL_Texture* _tex = mtileSet[_tileID].texture;
-                        SDL_RenderTexture(mRenderer, _tex, nullptr, &rect);
+                    SDL_Texture* _tex = mtileSet[_tileID].texture;
+                    if(!_tex)
+                    { 
+                        SDL_SetRenderDrawColor(mRenderer, 255, 0, 255, 255);
+                        SDL_RenderRect(mRenderer, &rect);
                     }
                     else
                     {
-                        SDL_SetRenderDrawColor(mRenderer, 255, 0, 255, 255);
-                        SDL_RenderRect(mRenderer, &rect);
+                        SDL_RenderTexture(mRenderer, _tex, nullptr, &rect);
                     }
                 }
             }
@@ -95,8 +93,6 @@ namespace minieditor
                     {
                         int _tileID = mLayers[l].Grid[y][x];
                         if(_tileID == -1) continue; 
-
-                        SDL_Texture* _tex = mtileSet[_tileID].texture;
             
                         SDL_FRect rect;
                         rect.x = (x * mtileSize) - mcamera.x;
@@ -104,15 +100,16 @@ namespace minieditor
                         rect.w = mtileSize;
                         rect.h = mtileSize;
 
-                        if(IDIsUsed(_tileID))
-                        {
-                            SDL_Texture* _tex = mtileSet[_tileID].texture;
-                            SDL_RenderTexture(mRenderer, _tex, nullptr, &rect);
+                        SDL_Texture* _tex = mtileSet[_tileID].texture;
+                        if(!_tex)
+                        { 
+                            SDL_SetRenderDrawColor(mRenderer, 255, 0, 255, 255);
+                            SDL_RenderRect(mRenderer, &rect);
                         }
                         else
                         {
-                            SDL_SetRenderDrawColor(mRenderer, 255, 0, 255, 255);
-                            SDL_RenderRect(mRenderer, &rect);
+
+                            SDL_RenderTexture(mRenderer, _tex, nullptr, &rect);
                         }
                     }
                 }
@@ -181,6 +178,14 @@ namespace minieditor
             Tile _tile;
 
             _tile.tileID = _id;
+
+            if(IDIsUsed(_tile.tileID))
+            {
+                continue;
+            }
+
+            musedIDs.push_back(_tile.tileID);
+
             _tile.name = std::filesystem::path(_fileName).string();
 
             std::filesystem::path _tilePath = mtilesPath + _fileName;
@@ -198,11 +203,10 @@ namespace minieditor
                 continue;
             }
 
-            musedIDs.push_back(_tile.tileID);
             mtileSet.push_back({_tile.tileID, _tile.name, _tile.texture});
         }
 
-        std::cout << "Tuiles initialisees\n";
+        std::cout << mtileSet.size() << " Tuiles initialisees\n";
     }
 
     Level::Level()
@@ -245,7 +249,7 @@ namespace minieditor
 
             file << "\n";
         }
-        
+        std::cout << "Niveau " << mfileName << ".txt sauvegarder avec succes\n";
         file.close();
     }
 
@@ -321,7 +325,7 @@ namespace minieditor
     void Level::WriteTileSet()
     {
         // Les noms de fichiers
-        std::vector<std::string> _fileNames;
+        std::vector<TileForTS> tileInfo;
 
         std::string completName = mtileSetPath + "Tileset" + mextension;
         std::ofstream file(completName);
@@ -330,7 +334,7 @@ namespace minieditor
         file << "MINIEDITORTILESET" << "\n\n";
 
         // Recuperation des noms de tout les fichier image (format .png) dans Assets/Tiles
-        for(const auto& entry : std::filesystem::directory_iterator("Assets/Tiles"))
+        for(const auto& entry : std::filesystem::directory_iterator("build/Assets/Tiles"))
         {
             if(!entry.is_regular_file())
                 continue;
@@ -338,31 +342,48 @@ namespace minieditor
             auto path = entry.path();
             if(path.extension() != ".png")
                 continue;
-            std::string _fileName = path.stem().string();
 
-            _fileNames.push_back(_fileName);
+            std::string _fileName = path.stem().string();
+            int _id = ExtractLeadingNumber(_fileName);
+
+            if(_id < 0)
+                continue;
+            
+            TileForTS _tileHelp;
+            _tileHelp.mName = _fileName;
+            _tileHelp.mID   = _id;
+
+            tileInfo.push_back(_tileHelp);
         }
         
         // Classe les noms par ordre alphabetique pour eviter les erreur dans les chargement de texture
-        std::sort(_fileNames.begin(), _fileNames.end(), [](const auto& a, const auto& b){return a < b;});
+        std::sort(tileInfo.begin(), tileInfo.end(), [](const auto& a, const auto& b){return a.mID < b.mID;});
 
         // Ecriture du TileSet (Tileset.txt)
-        for(const auto& name : _fileNames)
+        for(const auto& tile : tileInfo)
         {
-            int i = 0;
-            while(i < name.size() && std::isdigit(name[i]))
-                i++;
-            
-            if(i == 0)
-                continue;
-            
-            int _id = std::stoi(name.substr(0, i));
-
-            file << _id << " ";
-            file << name << ".png\n";
+            file << tile.mID << " ";
+            file << tile.mName << ".png\n";
         }
 
         file.close();
+    }
+
+    int Level::ExtractLeadingNumber(std::string name)
+    {
+        int i = 0;
+        while(i < name.size() && std::isdigit(name[i]))
+            i++;
+        
+        return (i > 0) ? std::stoi(name.substr(0, i)) : -1;
+    }
+
+    void Level::DestroyTextures()
+    {
+        for(auto& tile : mtileSet)
+        {
+            SDL_DestroyTexture(tile.texture);
+        }
     }
 }
 

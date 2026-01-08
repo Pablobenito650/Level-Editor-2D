@@ -89,6 +89,12 @@ namespace minieditor
                 {
                     mLevel.ResetCamera();
                 }
+
+                if(event.key.scancode == SDL_SCANCODE_T)
+                {
+                    mLevel.WriteTileSet();
+                    mLevel.InitTiles(mRenderer);
+                }
             }
         }
     }
@@ -96,6 +102,9 @@ namespace minieditor
     void App::Close()
     {
         std::cout << "Fermeture de l'Application" << std::endl;
+
+        // Detruire les textures du tileset
+        mLevel.DestroyTextures();
 
         // Arret Dear ImGUI
         ImGui_ImplSDL3_Shutdown();

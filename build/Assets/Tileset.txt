@@ -9,3 +9,12 @@ MINIEDITORTILESET
 6 6_brick_brown.png
 7 7_brick_brown.png
 8 8_troll.png
+9 9_banana_old.png
+10 10_gate_closed_left.png
+11 11_gate_closed_middle.png
+12 12_gate_closed_right.png
+13 13_rect_gray_3_new.png
+14 14_rect_gray_3_old.png
+15 15_enter_shop.png
+16 16_grass.png
+17 17_mangrove_1.png
