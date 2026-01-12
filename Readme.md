@@ -88,10 +88,10 @@ python Build.py
 
 ## Executer
 #Linux
-python3 Ruild.py
+python3 Run.py
 
 #Windows
-python Ruild.py
+python Run.py
 
 ```
 
