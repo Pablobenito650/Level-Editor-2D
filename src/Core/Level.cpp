@@ -12,12 +12,15 @@ namespace minieditor
     const std::string Level::mextension = ".txt";
 
     bool Level::mRemove = false;
+    bool Level::mmodeSelection = false;
+    bool Level::mIsLoading = false;
     bool Level::mSingleLayerRendering = false;
 
     int Level::mGridHeight = 31;
     int Level::mGridWidth = 32;
     int Level::mtileSize = 32;
     int Level::mLayerCount = 3;
+    int Level::mindex = 0;
 
     void Level::TilePlacement()
     {
@@ -29,6 +32,7 @@ namespace minieditor
             int xPos = worldX / mtileSize;
             int yPos = worldY / mtileSize;
 
+            // Ne rien faire lorsque le clique est effectuer hors grille
             if(xPos < 0 || xPos >= mGridWidth || yPos < 0 || yPos >= mGridHeight)
             {
                 std::cout << "Grid error : Out of bounds\n";
@@ -36,13 +40,40 @@ namespace minieditor
                 return;
             }
 
-            // Ajout de la tile a la grille
-            if(mRemove)
+            // Trouver l'index de la grille (xPos, yPos) dans la hierarchie de la couche courante
+            mindex = FindIDInScene(mcurrentLayerID, xPos, yPos);
+
+            // Ajouter ou retirer une tile de la grille si on est pas en mode selection de tuile
+            if(!mmodeSelection)
             {
-                mcurrentTileID = -1;
+                
+                if(mRemove)
+                {
+                    mcurrentTileID = -1;
+                }
+                
+                // Ajouter ou retirer en fonction de l'id (-1 pour retirer)
+                mLayers[mcurrentLayerID].Grid[yPos][xPos] = mcurrentTileID;
+
+                if(!mRemove)
+                {
+                    // Ajouter la tuile a la scene (hierarchie de la couche courante)
+                    TileInScene _tileInScene;
+                    _tileInScene.mID = mcurrentTileID;
+                    _tileInScene.mName = "Tile";
+                    _tileInScene.size = 1.0f;
+                    _tileInScene.mgridX = xPos;
+                    _tileInScene.mgridY = yPos;
+
+                    mLayers[mcurrentLayerID].hierarchie.push_back(_tileInScene);
+                }
+                else
+                {
+                    // Retirer la tuile de la hierachie de la couche courante
+                    // Car retirer une tuile ce n'est pas seulement retirer son id de la grille
+                    mLayers[mcurrentLayerID].hierarchie.erase(mLayers[mcurrentLayerID].hierarchie.begin() + mindex);
+                }
             }
-            
-            mLayers[mcurrentLayerID].Grid[yPos][xPos] = mcurrentTileID;
   
             mPlace = false;
         }   
@@ -55,6 +86,11 @@ namespace minieditor
 
     void Level::Render(SDL_Renderer* mRenderer)
     {      
+        if(mIsLoading)
+        {
+            return;
+        }
+
         if(mSingleLayerRendering)
         {
             for (int y = 0; y < mGridHeight; y++)
@@ -63,14 +99,20 @@ namespace minieditor
                 {
                     int _tileID = mLayers[mcurrentLayerID].Grid[y][x];
                     if(_tileID == -1) continue; 
-        
+                    
+                    // Trouver l'index de la dans la hierarchie de la couche courante
+                    int _index = FindIDInScene(mcurrentLayerID, x, y);
+
                     SDL_FRect rect;
                     rect.x = (x * mtileSize) - mcamera.x;
                     rect.y = (y * mtileSize) - mcamera.y;
-                    rect.w = mtileSize;
-                    rect.h = mtileSize;
+                    rect.w = mtileSize * mLayers[mcurrentLayerID].hierarchie[_index].size;
+                    rect.h = mtileSize * mLayers[mcurrentLayerID].hierarchie[_index].size;
 
-                    SDL_Texture* _tex = mtileSet[_tileID].texture;
+                    // Trouver l'index correspondant a l'id dans le tileset
+                    _index = FindID(_tileID);
+
+                    SDL_Texture* _tex = mtileSet[_index].texture;
                     if(!_tex)
                     { 
                         SDL_SetRenderDrawColor(mRenderer, 255, 0, 255, 255);
@@ -92,15 +134,21 @@ namespace minieditor
                     for (int x = 0; x < mGridWidth; x++)
                     {
                         int _tileID = mLayers[l].Grid[y][x];
-                        if(_tileID == -1) continue; 
-            
+                        if(_tileID == -1) continue;
+                        
+                        // Trouver l'index de la dans la hierarchie de la couche courante
+                        int _index = FindIDInScene(l, x, y);
+
                         SDL_FRect rect;
                         rect.x = (x * mtileSize) - mcamera.x;
                         rect.y = (y * mtileSize) - mcamera.y;
-                        rect.w = mtileSize;
-                        rect.h = mtileSize;
+                        rect.w = mtileSize * mLayers[l].hierarchie[_index].size;
+                        rect.h = mtileSize * mLayers[l].hierarchie[_index].size;
+                        
+                        // Trouver l'index correspondant a l'id dans le tileset
+                        _index = FindID(_tileID);
 
-                        SDL_Texture* _tex = mtileSet[_tileID].texture;
+                        SDL_Texture* _tex = mtileSet[_index].texture;
                         if(!_tex)
                         { 
                             SDL_SetRenderDrawColor(mRenderer, 255, 0, 255, 255);
@@ -122,6 +170,7 @@ namespace minieditor
         // Verification d'evenement souris (clic gauche)
         if(event.type == SDL_EVENT_MOUSE_BUTTON_DOWN && event.button.button == SDL_BUTTON_LEFT)
         {
+            // Recuperer la position de la souris au clic
             mMouseX = event.button.x;
             mMouseY = event.button.y;
             mPlace = true;
@@ -129,6 +178,7 @@ namespace minieditor
 
         if(event.type == SDL_EVENT_MOUSE_MOTION && (event.motion.state & SDL_BUTTON_RMASK))
         {
+            // mettre a jour la position de la camera quand la souris bouge et que le bouton droit est enfonce
             mcamera.x -= event.motion.xrel;
             mcamera.y -= event.motion.yrel;
         }
@@ -136,6 +186,8 @@ namespace minieditor
 
     void Level::InitLayers()
     {
+        // Initialiser les couches
+        // Chaque grille de couche est initialiser avec les valeurs -1 pour vide
         std::cout << "Initialisation des couches\n";
         mLayers.resize(mLayerCount);
 
@@ -153,6 +205,7 @@ namespace minieditor
 
     void Level::InitTiles(SDL_Renderer* mRenderer)
     {
+        // Creations des tiles depuis le fichier de mapping de tile-id
         std::cout << "Initialisation des tuiles\n";
 
         std::ifstream file("build/Assets/Tileset.txt");
@@ -162,6 +215,7 @@ namespace minieditor
             return;
         }
 
+        // Verification de la validiter du fichier (checker le header)
         std::string header;
         file >> header;
         if(header != "MINIEDITORTILESET")
@@ -173,6 +227,7 @@ namespace minieditor
         int _id;
         std::string _fileName;
 
+        // Creations des tiles
         while(file >> _id >> _fileName)
         {
             Tile _tile;
@@ -184,6 +239,7 @@ namespace minieditor
                 continue;
             }
 
+            // Ajouter l'id dans les IDs utilises
             musedIDs.push_back(_tile.tileID);
 
             _tile.name = std::filesystem::path(_fileName).string();
@@ -196,6 +252,7 @@ namespace minieditor
                 continue;
             }
 
+            // Creer la texture depuis l'images (.png)
             _tile.texture = IMG_LoadTexture(mRenderer, _tilePath.c_str());
             if(!_tile.texture)
             {
@@ -203,6 +260,7 @@ namespace minieditor
                 continue;
             }
 
+            // Ajout
             mtileSet.push_back({_tile.tileID, _tile.name, _tile.texture});
         }
 
@@ -223,9 +281,15 @@ namespace minieditor
         std::string completName = msavePath + mfileName + mextension;
         std::ofstream file(completName);
 
+        // fichier de sauvegarde des proprietes de niveau
+        completName = msavePath + mfileName + "Hierarchie" + mextension;
+        std::ofstream levelprops(completName);
+
         // Cle du format
         file << "MiniEditorFile" << "\n";
+        levelprops << "MiniEditorFile" << "\n\n";
 
+        // Ecriture du niveau 
         file << "WIDTH      " << mGridWidth << "\n";
         file << "HEIGHT     " << mGridHeight << "\n";
 
@@ -249,16 +313,36 @@ namespace minieditor
 
             file << "\n";
         }
+
+        // Ecriture des propriete du niveau
+        for (int l = 0; l < mLayerCount; l++)
+        {
+            levelprops << "HIERARCHIESIZE " << mLayers[l].hierarchie.size() << "\n";
+
+            for (int i = 0; i < mLayers[l].hierarchie.size(); i++)
+            {
+                levelprops << mLayers[l].hierarchie[i].mID << " ";
+                levelprops << mLayers[l].hierarchie[i].mName << " ";
+                levelprops << mLayers[l].hierarchie[i].mgridX << " ";
+                levelprops << mLayers[l].hierarchie[i].mgridY << " ";
+                levelprops << mLayers[l].hierarchie[i].size << "\n";
+            }
+            
+            levelprops << "\n";
+        }
+
         std::cout << "Niveau " << mfileName << ".txt sauvegarder avec succes\n";
         file.close();
+        levelprops.close();
     }
 
     void Level::LoadLevel()
     {
+        mIsLoading = true;
         std::cout << "Chargement du niveau " << mfileName << ".txt\n";
 
+        // Fichier de niveau
         std::string completName = msavePath + mfileName + mextension;
-
         std::ifstream file(completName);
         if(!file.is_open())
         {
@@ -269,13 +353,14 @@ namespace minieditor
         std::string token;
 
         file >> token;
-
+        // Validation du fichier
         if(token != "MiniEditorFile")
         {
             std::cerr << "Fichier inconnu\n";
             return;
         }
-
+        
+        // Recuperation des infos
         file >> token >> mGridWidth;
         file >> token >> mGridHeight;
 
@@ -298,8 +383,47 @@ namespace minieditor
         }
 
         file.close();
-        
+
+        // Fichier de proprites de niveau
+        completName = msavePath + mfileName + "Hierarchie" + mextension;
+        std::ifstream levelprops(completName);
+        if(!levelprops.is_open())
+        {
+            std::cerr << "Impossible d'ouvrir le fichier de propriete. Veuillez verifier s'il exixte\n" << std::endl;
+            return;
+        }
+
+        std::string getter;
+
+        // Validation du fichier
+        levelprops >> getter;
+        if(getter != "MiniEditorFile")
+        {
+            std::cerr << "Fichier de proprieter inconnu\n";
+            return;
+        }
+
+        // Recuperation des infos
+        for (int l = 0; l < mLayerCount; l++)
+        {
+            int _size;
+            levelprops >> getter >> _size;
+            mLayers[l].hierarchie.resize(_size);
+
+            for (int i = 0; i < mLayers[l].hierarchie.size(); i++)
+            {
+                levelprops >> mLayers[l].hierarchie[i].mID;
+                levelprops >> mLayers[l].hierarchie[i].mName;
+                levelprops >> mLayers[l].hierarchie[i].mgridX;
+                levelprops >> mLayers[l].hierarchie[i].mgridY;
+                levelprops >> mLayers[l].hierarchie[i].size;
+            }
+            
+        }
+
+        levelprops.close();
         std::cout << "Niveau " << mfileName << ".txt Charger avec succes\n";
+        mIsLoading = false;
     }
 
     void Level::ResetCamera()
@@ -311,6 +435,7 @@ namespace minieditor
 
     bool Level::IDIsUsed(int tileID)
     {
+        // Verifier si un id est deja utiliser
         for(const auto& _id : musedIDs)
         {
             if(tileID == _id)
@@ -322,6 +447,7 @@ namespace minieditor
         return false;
     }
 
+    // Ecriture du fichier de mapping (tile->id)
     void Level::WriteTileSet()
     {
         // Les noms de fichiers
@@ -371,6 +497,7 @@ namespace minieditor
 
     int Level::ExtractLeadingNumber(std::string name)
     {
+        // Extraire le nombre(id) au debut du nom de fichier
         int i = 0;
         while(i < name.size() && std::isdigit(name[i]))
             i++;
@@ -380,10 +507,45 @@ namespace minieditor
 
     void Level::DestroyTextures()
     {
+        // Detruire les texture a la fin du progamme
         for(auto& tile : mtileSet)
         {
             SDL_DestroyTexture(tile.texture);
         }
+    }
+
+    int Level::FindID(int tileID)
+    {
+        // Cherchez un index de tableau correspondant a un id de tuile dans mtileSet
+        int i;
+        for(i = 0; i < mtileSet.size(); i++)
+        {
+            if(mtileSet[i].tileID == tileID)
+            {
+                break;
+            }
+        }
+        return i;
+    }
+
+    int Level::FindIDInScene(int layerID, int x, int y)
+    {
+        if(mLayers[layerID].Grid[y][x] == -1)
+        {
+            return 0;
+        }
+        
+        // Cherchez un index de tableau correspondant a un id de tuile dans la scene (hierarchie de la couche courante)
+        int i;
+        for (i = 0; i < mLayers[layerID].hierarchie.size(); i++)
+        {
+            if(mLayers[layerID].hierarchie[i].mgridX == x && mLayers[layerID].hierarchie[i].mgridY == y)
+            {
+                break;
+            }
+        }
+
+        return i;
     }
 }
 

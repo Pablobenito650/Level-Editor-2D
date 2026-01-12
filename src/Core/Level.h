@@ -10,6 +10,9 @@
 
 namespace minieditor
 {
+    /**
+     * @brief structure pour les tiles aidant a l'ecriture du fichier de mapping Tileset.txt
+     */
     struct TileForTS
     {
         int mID = 0;
@@ -17,7 +20,17 @@ namespace minieditor
     };
 
     /**
-     * @brief caracteristiques d'une tile 
+     * @brief structure pour les tiles placees dans la scene
+     */
+    struct TileInScene : TileForTS
+    {
+        int mgridX;
+        int mgridY;
+        float size;
+    };
+
+    /**
+     * @brief structure pour les tiles dans le tile piker 
      */
     struct Tile
     {
@@ -33,6 +46,7 @@ namespace minieditor
     {
         std::string name;
         std::vector<std::vector<int>> Grid;
+        std::vector<TileInScene> hierarchie;
     };
 
     /**
@@ -53,7 +67,10 @@ namespace minieditor
             static const std::string mextension; 
 
             static bool mRemove;
+            static bool mmodeSelection;
+            static bool mIsLoading;
             static bool mSingleLayerRendering;
+            
 
             static int mGridHeight;
             static int mGridWidth;
@@ -66,7 +83,8 @@ namespace minieditor
             std::string mtilesPath = "build/Assets/Tiles/";
 
             int mMouseX;
-            int mMouseY;            
+            int mMouseY; 
+            static int mindex;           
 
             bool mPlace = false;
 
@@ -143,6 +161,16 @@ namespace minieditor
              * @brief bonne pratique : detruire les texture
              */
             void DestroyTextures();
+
+            /**
+             * @brief rechercher l'index correspondant a un id dans le tableau mtileSet
+             */
+            static int FindID(int tileID);
+
+            /**
+             * @brief rechercher l'index correspondant a la tuile qui a pour coordonne (x,y) dans la grille hierarchique (hierarchie) de la couche d'id layerID 
+             */
+            static int FindIDInScene(int layerID, int x, int y);
     };
 } // namespace minieditor
 

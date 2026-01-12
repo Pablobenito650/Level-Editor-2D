@@ -51,18 +51,16 @@ namespace minieditor
             }
             
             ImGui::Text("Actions");
-            // Activer ou desactiver le mode suppression de tiles
-            if(ImGui::Checkbox("Remove Tile", &Level::mRemove))
-            {
+            // mode selection de tile deja pose dans la scene
+            ImGui::Checkbox("Mode Selection", &Level::mmodeSelection);
 
-            }
+            // Activer ou desactiver le mode suppression de tiles
+            ImGui::Checkbox("Remove Tile", &Level::mRemove);
             
             // Activer ou desactiver le Rendu monocouche
-            if(ImGui::Checkbox("Single Rendering", &Level::mSingleLayerRendering))
-            {
+            ImGui::Checkbox("Single Rendering", &Level::mSingleLayerRendering);
 
-            }
-
+            // Liste deroulante pour la selection de la couche courante
             if(ImGui::BeginCombo("Layer", Level::mLayers[Level::mcurrentLayerID].name.c_str()))
             {
                 for (int i = 0; i < Level::mLayerCount; i++)
@@ -77,7 +75,7 @@ namespace minieditor
             }
             
             ImGui::Text("Tiles Picker");
-            // Afficher dans la fenetre ImGui toutes les images presentes dans les Assets en les rendant selectionnable
+            // Afficher dans la fenetre ImGui toutes les images presentes dans les Assets en les rendant selectionnable (tileSet)
             ImGui::Columns(mcolumns, nullptr, false);
 
             for(const auto& tile : Level::mtileSet)
@@ -100,15 +98,42 @@ namespace minieditor
 
         {
             ImGui::Begin("Inspector");
-
-            // Afficher la tile selectionnee en grand avec plus de detail
-            if(Level::mcurrentTileID != -1)
+            // Afficher la tile selectionner dans la scene
+            if(Level::mmodeSelection && Level::mLayers[Level::mcurrentLayerID].hierarchie.size() > 0)
             {
-                ImTextureID _tex = (ImTextureID)Level::mtileSet[Level::mcurrentTileID].texture;
-                ImGui::Image(_tex, ImVec2(4*mtileSize, 4*mtileSize));
+                int _id = Level::mLayers[Level::mcurrentLayerID].hierarchie[Level::mindex].mID;
+                int _index = Level::FindID(_id);
+                
+                // Afficher l'image definissant la tuile
+                ImTextureID _tex = (ImTextureID)Level::mtileSet[_index].texture;
+                ImGui::Image(_tex, ImVec2(3*mtileSize, 3*mtileSize));
 
-                std::string _texName = Level::mtileSet[Level::mcurrentTileID].name;
-                int _id = Level::mtileSet[Level::mcurrentTileID].tileID;
+                // Afficher son nom dans la scene (modifiable) et l'id de l'image (texture) dont il decoule
+                ImGui::InputText("Name", &Level::mLayers[Level::mcurrentLayerID].hierarchie[Level::mindex].mName);
+                ImGui::Text("ID %d", _id);
+
+                // Afficher sa position dans le plan
+                int x = Level::mLayers[Level::mcurrentLayerID].hierarchie[Level::mindex].mgridX;
+                int y = Level::mLayers[Level::mcurrentLayerID].hierarchie[Level::mindex].mgridY;
+
+                ImGui::Text("Transform");
+                ImGui::Text("Position X %d  Y %d", x * Level::mtileSize, y * Level::mtileSize);
+                // Afficher et gere le scale de la tuile dans la scene
+                ImGui::SliderFloat("Scale", &Level::mLayers[Level::mcurrentLayerID].hierarchie[Level::mindex].size, 0.5f, 2.0f);
+            }
+
+            // Afficher la tile (a placee) selectionnee en grand avec plus de detail
+            if(Level::mcurrentTileID != -1 && !Level::mmodeSelection)
+            {
+                int _index = Level::FindID(Level::mcurrentTileID);
+
+                // Texture
+                ImTextureID _tex = (ImTextureID)Level::mtileSet[_index].texture;
+                ImGui::Image(_tex, ImVec2(3*mtileSize, 3*mtileSize));
+
+                // nom et id
+                std::string _texName = Level::mtileSet[_index].name;
+                int _id = Level::mtileSet[_index].tileID;
 
                 ImGui::Text("%s", _texName.c_str());
                 ImGui::Text("ID %d", _id);
