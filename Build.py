@@ -80,17 +80,7 @@ class Builder:
     def get_libraries(self):
         return []
 
-    # lancer l'application generer
-    def run(self):
-        output_path = self.build_dir / self.output_name
-        if output_path.exists():
-            print(f"Lancement de {output_path}......")
-
-            subprocess.run([f"./{output_path}" if self.platform != "win32" else str(output_path)])
-        else:
-            print("Executable introuvable. Veuillez rebuild")
 
 if __name__ == "__main__":
     builder = Builder()
     builder.build()
-    builder.run()

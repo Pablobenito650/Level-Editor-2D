@@ -79,13 +79,20 @@ sudo apt install libsdl3-image-dev
 ### Compilation et Exécution
 
 ```bash
-# Compiler le projet
-
+## Compiler 
 #Linux
 python3 Build.py
 
 #Windows
 python Build.py
+
+## Executer
+#Linux
+python3 Ruild.py
+
+#Windows
+python Ruild.py
+
 ```
 
 ### Actions clavier/souris
