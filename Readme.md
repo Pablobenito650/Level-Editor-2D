@@ -21,7 +21,7 @@ du projet et etre utiliser en tant que tuile.
 ```
 Level Editor 2D/
 ├── Assets/               # Tiles
-├── Build/                # Fichiers de compilation
+├── Build/                # Application
 ├── src/
 │   ├── Core/             # Base de l'Editor
 │   │   └── Level.h       # Classe principale
@@ -29,7 +29,9 @@ Level Editor 2D/
 │   └── GUI.h             # Gestion de l'Interface Utilisateur
 ├── thirdparty            # Bibliotheques
 │   └── imGui/            # Library GUI
-└── build.py              # Scripts de compilation 
+└── build.py              # Script de compilation
+└── Run.py                # Script de lancement de l'editeur
+└── Clean.py              # Script de nettoyage de build 
 ```
 ## Fonctionnalites
 

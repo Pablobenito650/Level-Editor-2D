@@ -67,7 +67,6 @@ namespace minieditor
             static const std::string mtileSetPath;
             static const std::string mextension; 
 
-            static bool mRemove;
             static bool mmodeSelection;
             static bool mIsLoading;
             static bool mSingleLayerRendering;
@@ -107,9 +106,14 @@ namespace minieditor
             void Update();
 
             /**
-             * @brief placement une tile (enregistrement dans la grille)
+             * @brief placement une tile 
              */ 
             void TilePlacement();
+
+            /**
+             * @brief suppression d'une tile 
+             */ 
+            static void RemoveTile(int gridX, int gridY);
 
             /** 
              * @brief recuperatioin des coordonnees de la souris au clic 

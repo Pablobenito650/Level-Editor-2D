@@ -11,7 +11,6 @@ namespace minieditor
     const std::string Level::mtileSetPath = "build/Assets/";
     const std::string Level::mextension = ".txt";
 
-    bool Level::mRemove = false;
     bool Level::mmodeSelection = false;
     bool Level::mIsLoading = false;
     bool Level::mSingleLayerRendering = false;
@@ -46,37 +45,30 @@ namespace minieditor
             // Ajouter ou retirer une tile de la grille si on est pas en mode selection de tuile
             if(!mmodeSelection)
             {
-                
-                if(mRemove)
-                {
-                    mcurrentTileID = -1;
-                }
-                
                 // Ajouter ou retirer en fonction de l'id (-1 pour retirer)
                 mLayers[mcurrentLayerID].Grid[yPos][xPos] = mcurrentTileID;
 
-                if(!mRemove)
-                {
-                    // Ajouter la tuile a la scene (hierarchie de la couche courante)
-                    TileInScene _tileInScene;
-                    _tileInScene.mID = mcurrentTileID;
-                    _tileInScene.mName = "Tile";
-                    _tileInScene.size = 1.0f;
-                    _tileInScene.mgridX = xPos;
-                    _tileInScene.mgridY = yPos;
+                
+                // Ajouter la tuile a la scene (hierarchie de la couche courante)
+                TileInScene _tileInScene;
+                _tileInScene.mID = mcurrentTileID;
+                _tileInScene.mName = "Tile";
+                _tileInScene.size = 1.0f;
+                _tileInScene.mgridX = xPos;
+                _tileInScene.mgridY = yPos;
 
-                    mLayers[mcurrentLayerID].hierarchie.push_back(_tileInScene);
-                }
-                else
-                {
-                    // Retirer la tuile de la hierachie de la couche courante
-                    // Car retirer une tuile ce n'est pas seulement retirer son id de la grille
-                    mLayers[mcurrentLayerID].hierarchie.erase(mLayers[mcurrentLayerID].hierarchie.begin() + mindex);
-                }
+                mLayers[mcurrentLayerID].hierarchie.push_back(_tileInScene);
             }
   
             mPlace = false;
         }   
+    }
+
+    void Level::RemoveTile(int gridX, int gridY)
+    {
+        int index = FindIDInScene(mcurrentLayerID, gridX, gridY);
+        mLayers[mcurrentLayerID].Grid[gridY][gridX] = -1;
+        mLayers[mcurrentLayerID].hierarchie.erase(mLayers[mcurrentLayerID].hierarchie.begin() + index);
     }
 
     void Level::Update()
@@ -319,7 +311,7 @@ namespace minieditor
         {
             levelprops << "HIERARCHIESIZE " << mLayers[l].hierarchie.size() << "\n";
 
-            for (int i = 0; i < mLayers[l].hierarchie.size(); i++)
+            for (size_t i = 0; i < mLayers[l].hierarchie.size(); i++)
             {
                 levelprops << mLayers[l].hierarchie[i].mID << " ";
                 levelprops << mLayers[l].hierarchie[i].mName << " ";
@@ -347,6 +339,7 @@ namespace minieditor
         if(!file.is_open())
         {
             std::cerr << "Impossible d'ouvrir le fichier. Veuillez verifier s'il exixte\n" << std::endl;
+            mIsLoading = false;
             return;
         }
 
@@ -357,6 +350,7 @@ namespace minieditor
         if(token != "MiniEditorFile")
         {
             std::cerr << "Fichier inconnu\n";
+            mIsLoading = false;
             return;
         }
         
@@ -390,6 +384,7 @@ namespace minieditor
         if(!levelprops.is_open())
         {
             std::cerr << "Impossible d'ouvrir le fichier de propriete. Veuillez verifier s'il exixte\n" << std::endl;
+            mIsLoading = false;
             return;
         }
 
@@ -400,6 +395,7 @@ namespace minieditor
         if(getter != "MiniEditorFile")
         {
             std::cerr << "Fichier de proprieter inconnu\n";
+            mIsLoading = false;
             return;
         }
 
@@ -410,7 +406,7 @@ namespace minieditor
             levelprops >> getter >> _size;
             mLayers[l].hierarchie.resize(_size);
 
-            for (int i = 0; i < mLayers[l].hierarchie.size(); i++)
+            for (size_t i = 0; i < mLayers[l].hierarchie.size(); i++)
             {
                 levelprops >> mLayers[l].hierarchie[i].mID;
                 levelprops >> mLayers[l].hierarchie[i].mName;

@@ -53,9 +53,6 @@ namespace minieditor
             ImGui::Text("Actions");
             // mode selection de tile deja pose dans la scene
             ImGui::Checkbox("Mode Selection", &Level::mmodeSelection);
-
-            // Activer ou desactiver le mode suppression de tiles
-            ImGui::Checkbox("Remove Tile", &Level::mRemove);
             
             // Activer ou desactiver le Rendu monocouche
             ImGui::Checkbox("Single Rendering", &Level::mSingleLayerRendering);
@@ -103,7 +100,16 @@ namespace minieditor
             {
                 int _id = Level::mLayers[Level::mcurrentLayerID].hierarchie[Level::mindex].mID;
                 int _index = Level::FindID(_id);
-                
+
+                // Afficher sa position dans le plan
+                int x = Level::mLayers[Level::mcurrentLayerID].hierarchie[Level::mindex].mgridX;
+                int y = Level::mLayers[Level::mcurrentLayerID].hierarchie[Level::mindex].mgridY;
+
+                if(ImGui::Button("Suppr"))
+                {
+                    Level::RemoveTile(x, y);
+                }
+
                 // Afficher l'image definissant la tuile
                 ImTextureID _tex = (ImTextureID)Level::mtileSet[_index].texture;
                 ImGui::Image(_tex, ImVec2(4*mtileSize, 4*mtileSize));
@@ -111,10 +117,6 @@ namespace minieditor
                 // Afficher son nom dans la scene (modifiable) et l'id de l'image (texture) dont il decoule
                 ImGui::InputText("Name", &Level::mLayers[Level::mcurrentLayerID].hierarchie[Level::mindex].mName);
                 ImGui::Text("ID %d", _id);
-
-                // Afficher sa position dans le plan
-                int x = Level::mLayers[Level::mcurrentLayerID].hierarchie[Level::mindex].mgridX;
-                int y = Level::mLayers[Level::mcurrentLayerID].hierarchie[Level::mindex].mgridY;
 
                 ImGui::Text("Transform");
                 ImGui::Text("Position X %d  Y %d", x * Level::mtileSize, y * Level::mtileSize);
