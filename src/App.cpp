@@ -4,7 +4,7 @@
 
 namespace minieditor
 {
-        void App::test()
+        void App::Run()
         {
             // Initialisation de SDL
             SDL_Init(SDL_INIT_VIDEO);

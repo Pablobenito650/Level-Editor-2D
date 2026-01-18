@@ -16,4 +16,4 @@ def run():
         print("Executable introuvable. Veuillez rebuild")
 
 if __name__ == "__main__":
-    run()
+    sys.exit(run())

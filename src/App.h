@@ -21,7 +21,7 @@ namespace minieditor
             GUI mGui;
             Level mLevel;
 
-            void test();
+            void Run();
             void Close();
 
             /**

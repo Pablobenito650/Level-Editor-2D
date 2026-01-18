@@ -3,7 +3,7 @@
 int main(int argc, char** argv)
 {
     minieditor::App app;
-    app.test();
+    app.Run();
     
     return 0;
 }

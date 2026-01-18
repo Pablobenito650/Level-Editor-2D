@@ -106,7 +106,7 @@ namespace minieditor
                 
                 // Afficher l'image definissant la tuile
                 ImTextureID _tex = (ImTextureID)Level::mtileSet[_index].texture;
-                ImGui::Image(_tex, ImVec2(3*mtileSize, 3*mtileSize));
+                ImGui::Image(_tex, ImVec2(4*mtileSize, 4*mtileSize));
 
                 // Afficher son nom dans la scene (modifiable) et l'id de l'image (texture) dont il decoule
                 ImGui::InputText("Name", &Level::mLayers[Level::mcurrentLayerID].hierarchie[Level::mindex].mName);
@@ -129,7 +129,7 @@ namespace minieditor
 
                 // Texture
                 ImTextureID _tex = (ImTextureID)Level::mtileSet[_index].texture;
-                ImGui::Image(_tex, ImVec2(3*mtileSize, 3*mtileSize));
+                ImGui::Image(_tex, ImVec2(4*mtileSize, 4*mtileSize));
 
                 // nom et id
                 std::string _texName = Level::mtileSet[_index].name;
