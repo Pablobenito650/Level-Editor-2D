@@ -48,12 +48,14 @@ namespace minieditor
                 // Ajouter ou retirer en fonction de l'id (-1 pour retirer)
                 mLayers[mcurrentLayerID].Grid[yPos][xPos] = mcurrentTileID;
 
+                ResetSelectionStatus();
                 
                 // Ajouter la tuile a la scene (hierarchie de la couche courante)
                 TileInScene _tileInScene;
                 _tileInScene.mID = mcurrentTileID;
                 _tileInScene.mName = "Tile";
                 _tileInScene.size = 1.0f;
+                _tileInScene.mIsSelected = true;
                 _tileInScene.mgridX = xPos;
                 _tileInScene.mgridY = yPos;
 
@@ -93,18 +95,18 @@ namespace minieditor
                     if(_tileID == -1) continue; 
                     
                     // Trouver l'index de la dans la hierarchie de la couche courante
-                    int _index = FindIDInScene(mcurrentLayerID, x, y);
+                    int _indexA = FindIDInScene(mcurrentLayerID, x, y);
 
                     SDL_FRect rect;
                     rect.x = (x * mtileSize) - mcamera.x;
                     rect.y = (y * mtileSize) - mcamera.y;
-                    rect.w = mtileSize * mLayers[mcurrentLayerID].hierarchie[_index].size;
-                    rect.h = mtileSize * mLayers[mcurrentLayerID].hierarchie[_index].size;
+                    rect.w = mtileSize * mLayers[mcurrentLayerID].hierarchie[_indexA].size;
+                    rect.h = mtileSize * mLayers[mcurrentLayerID].hierarchie[_indexA].size;
 
                     // Trouver l'index correspondant a l'id dans le tileset
-                    _index = FindID(_tileID);
+                    int _indexB = FindID(_tileID);
 
-                    SDL_Texture* _tex = mtileSet[_index].texture;
+                    SDL_Texture* _tex = mtileSet[_indexB].texture;
                     if(!_tex)
                     { 
                         SDL_SetRenderDrawColor(mRenderer, 255, 0, 255, 255);
@@ -113,6 +115,11 @@ namespace minieditor
                     else
                     {
                         SDL_RenderTexture(mRenderer, _tex, nullptr, &rect);
+
+                        if(mLayers[mcurrentLayerID].hierarchie[_indexA].mIsSelected)
+                        {
+                            DrawSelectionSquare(mRenderer, rect.x, rect.y, rect.w);
+                        }
                     }
                 }
             }
@@ -129,18 +136,18 @@ namespace minieditor
                         if(_tileID == -1) continue;
                         
                         // Trouver l'index de la dans la hierarchie de la couche courante
-                        int _index = FindIDInScene(l, x, y);
+                        int _indexA = FindIDInScene(l, x, y);
 
                         SDL_FRect rect;
                         rect.x = (x * mtileSize) - mcamera.x;
                         rect.y = (y * mtileSize) - mcamera.y;
-                        rect.w = mtileSize * mLayers[l].hierarchie[_index].size;
-                        rect.h = mtileSize * mLayers[l].hierarchie[_index].size;
+                        rect.w = mtileSize * mLayers[l].hierarchie[_indexA].size;
+                        rect.h = mtileSize * mLayers[l].hierarchie[_indexA].size;
                         
                         // Trouver l'index correspondant a l'id dans le tileset
-                        _index = FindID(_tileID);
+                        int _indexB = FindID(_tileID);
 
-                        SDL_Texture* _tex = mtileSet[_index].texture;
+                        SDL_Texture* _tex = mtileSet[_indexB].texture;
                         if(!_tex)
                         { 
                             SDL_SetRenderDrawColor(mRenderer, 255, 0, 255, 255);
@@ -148,8 +155,12 @@ namespace minieditor
                         }
                         else
                         {
-
                             SDL_RenderTexture(mRenderer, _tex, nullptr, &rect);
+
+                            if(l == mcurrentLayerID && mLayers[l].hierarchie[_indexA].mIsSelected)
+                            {
+                                DrawSelectionSquare(mRenderer, rect.x, rect.y, rect.w);
+                            }
                         }
                     }
                 }
@@ -257,6 +268,11 @@ namespace minieditor
         }
 
         std::cout << mtileSet.size() << " Tuiles initialisees\n";
+
+        if(mtileSet.size() != 0)
+        {
+            mcurrentTileID = 0;
+        }
     }
 
     Level::Level()
@@ -266,7 +282,7 @@ namespace minieditor
 
     void Level::SaveLevel()
     {
-        std::cout << "Sauvegarde du niveau " << mfileName << ".txt\n";
+        std::cout << "\nSauvegarde du niveau " << mfileName << ".txt\n";
         std::filesystem::create_directories(msavePath);
         
         // fichier de sauvegarde du niveau
@@ -331,7 +347,7 @@ namespace minieditor
     void Level::LoadLevel()
     {
         mIsLoading = true;
-        std::cout << "Chargement du niveau " << mfileName << ".txt\n";
+        std::cout << "\nChargement du niveau " << mfileName << ".txt\n";
 
         // Fichier de niveau
         std::string completName = msavePath + mfileName + mextension;
@@ -494,7 +510,7 @@ namespace minieditor
     int Level::ExtractLeadingNumber(std::string name)
     {
         // Extraire le nombre(id) au debut du nom de fichier
-        int i = 0;
+        size_t i = 0;
         while(i < name.size() && std::isdigit(name[i]))
             i++;
         
@@ -513,7 +529,7 @@ namespace minieditor
     int Level::FindID(int tileID)
     {
         // Cherchez un index de tableau correspondant a un id de tuile dans mtileSet
-        int i;
+        size_t i;
         for(i = 0; i < mtileSet.size(); i++)
         {
             if(mtileSet[i].tileID == tileID)
@@ -532,7 +548,7 @@ namespace minieditor
         }
         
         // Cherchez un index de tableau correspondant a un id de tuile dans la scene (hierarchie de la couche courante)
-        int i;
+        size_t i;
         for (i = 0; i < mLayers[layerID].hierarchie.size(); i++)
         {
             if(mLayers[layerID].hierarchie[i].mgridX == x && mLayers[layerID].hierarchie[i].mgridY == y)
@@ -542,6 +558,37 @@ namespace minieditor
         }
 
         return i;
+    }
+
+    void Level::RenderBackGroundGrid(SDL_Renderer* mRenderer)
+    {
+        SDL_FRect limits;
+        limits.x = 0.0f - mcamera.x;
+        limits.y = 0.0f - mcamera.y;
+        limits.h = mGridHeight * mtileSize;
+        limits.w = mGridWidth  * mtileSize;
+
+        SDL_SetRenderDrawColor(mRenderer, 50, 50, 50, 255);
+        SDL_RenderRect(mRenderer, &limits);
+    }
+
+    void Level::ResetSelectionStatus()
+    {
+        for(auto& tile : mLayers[mcurrentLayerID].hierarchie)
+        {
+            tile.mIsSelected = false;
+        }
+    }
+
+    void Level::DrawSelectionSquare(SDL_Renderer* mRenderer, int x, int y, float size)
+    {
+        x = x - 1.0f;
+        y = y - 1.0f;
+        size = size + 1.0f;
+        
+        SDL_FRect selcetionSquare = {static_cast<float>(x), static_cast<float>(y), size, size};
+        SDL_SetRenderDrawColor(mRenderer, 0, 255, 255, 255);
+        SDL_RenderRect(mRenderer, &selcetionSquare);
     }
 }
 

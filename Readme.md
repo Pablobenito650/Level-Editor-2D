@@ -98,7 +98,11 @@ python Run.py
 ```
 
 ### Actions clavier/souris
-1. S : sauvegarder le niveau
-2. R : Recentrer la camera scene
-3. Boutton droit de la souris : maintenir et deplacer la souris pour deplacer la camera scene
+1. Ctrl+S : sauvegarder le niveau 
+2. Ctrl+O : Charger un niveau 
+## pour les deux cas ci dessus s'assurer que la fenetre Imgui "Project" soit selectionnee
+
+3. R : Recentrer la camera scene
+4. T : Mettre a jour le tile set si l'on a ajouter une image pendant que le programme tournait
+5. Boutton droit de la souris : maintenir et deplacer la souris pour deplacer la camera scene
 

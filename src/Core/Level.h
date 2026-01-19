@@ -28,6 +28,7 @@ namespace minieditor
         int mgridX;
         int mgridY;
         float size;
+        bool mIsSelected = false;
     };
 
     /**
@@ -101,6 +102,12 @@ namespace minieditor
             void Render(SDL_Renderer* mRenderer);
 
             /**
+             * @brief rendre la grille d'editeur et les limites du niveau
+             * @param mRenderer rendu SDL
+             */
+            void RenderBackGroundGrid(SDL_Renderer* mRenderer);
+
+            /**
              * @brief mettre a jour l'editeur
              */
             void Update();
@@ -111,7 +118,9 @@ namespace minieditor
             void TilePlacement();
 
             /**
-             * @brief suppression d'une tile 
+             * @brief suppression d'une tile
+             * @param gridX position x dans la grille
+             * @param gridY position y dans la grille 
              */ 
             static void RemoveTile(int gridX, int gridY);
 
@@ -159,6 +168,7 @@ namespace minieditor
 
             /**
              * @brief recupere le numero (id) au debut du nom d'un fichier
+             * @param name nom du fichier
              */
             int ExtractLeadingNumber(std::string name);
 
@@ -176,6 +186,16 @@ namespace minieditor
              * @brief rechercher l'index correspondant a la tuile qui a pour coordonne (x,y) dans la grille hierarchique (hierarchie) de la couche d'id layerID 
              */
             static int FindIDInScene(int layerID, int x, int y);
+
+            /**
+             * @brief ramener toutes les tiles dans la scene a "non seectionner"
+             */
+            static void ResetSelectionStatus();
+
+            /**
+             * @brief dessiner un carre au tour de la tile selectionnee
+             */
+            void DrawSelectionSquare(SDL_Renderer* mRenderer, int x, int y, float size);
     };
 } // namespace minieditor
 

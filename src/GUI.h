@@ -23,6 +23,7 @@ namespace minieditor
         public:
             void GUISet(SDL_Window* window, SDL_Renderer* mRenderer);
             void TestGUI(SDL_Renderer* mRenderer);
+            void DrawSelectedTile();
     };
 }
 

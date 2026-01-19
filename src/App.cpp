@@ -53,6 +53,8 @@ namespace minieditor
                 // Rendu Level
                 mLevel.Render(mRenderer);
 
+                mLevel.RenderBackGroundGrid(mRenderer);
+
                 // Gestion GUI
                 mGui.TestGUI(mRenderer);
 
@@ -66,6 +68,7 @@ namespace minieditor
     void App::EventManage(const SDL_Event& event, ImGuiIO io)
     {
         ImGui_ImplSDL3_ProcessEvent(&event);
+
         if(event.type == SDL_EVENT_QUIT)
             mIsRunning = false;
         if(event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED && event.window.windowID == SDL_GetWindowID(mWindow))
@@ -76,15 +79,13 @@ namespace minieditor
             mLevel.MouseGetter(event);
         }
 
+        SDL_Keycode key = event.key.key;
+        SDL_Keymod mod = event.key.mod;
+
         if(!io.WantCaptureKeyboard)
         {
             if(event.type == SDL_EVENT_KEY_DOWN && event.key.repeat == 0)
-            {
-                if(event.key.scancode == SDL_SCANCODE_S)
-                {
-                    mLevel.SaveLevel();
-                }
-                
+            {   
                 if(event.key.scancode == SDL_SCANCODE_R)
                 {
                     mLevel.ResetCamera();
@@ -95,13 +96,30 @@ namespace minieditor
                     mLevel.WriteTileSet();
                     mLevel.InitTiles(mRenderer);
                 }
+
+                // Racourcis clavier pour Load/Save
+                if(key == SDLK_S)
+                {
+                    if(mod & SDL_KMOD_CTRL)
+                    {
+                        mLevel.SaveLevel();
+                    }
+                }
+
+                if(key == SDLK_O)
+                {
+                    if(mod & SDL_KMOD_CTRL)
+                    {
+                        mLevel.LoadLevel();
+                    }
+                }
             }
         }
     }
 
     void App::Close()
     {
-        std::cout << "Fermeture de l'Application" << std::endl;
+        std::cout << "\nFermeture de l'Application" << std::endl;
 
         // Detruire les textures du tileset
         mLevel.DestroyTextures();
