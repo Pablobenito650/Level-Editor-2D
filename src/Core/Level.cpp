@@ -3,8 +3,10 @@
 namespace minieditor
 {
     std::vector<Tile> Level::mtileSet;
+    std::vector<Light> Level::mLights;
     int Level::mcurrentTileID = -1;
     int Level::mcurrentLayerID = 0;
+    int Level::mambient = 10;
     std::vector<Layer> Level::mLayers;
     std::string Level::mfileName = "Level";
     const std::string Level::msavePath = "build/Levels/";
@@ -20,6 +22,7 @@ namespace minieditor
     int Level::mtileSize = 32;
     int Level::mLayerCount = 3;
     int Level::mindex = 0;
+    int Level::mglobalLightIntensity = 100;
 
     void Level::TilePlacement()
     {
@@ -84,6 +87,8 @@ namespace minieditor
         {
             return;
         }
+
+        SDL_SetRenderTarget(mRenderer, nullptr);
 
         if(mSingleLayerRendering)
         {
@@ -165,6 +170,11 @@ namespace minieditor
                     }
                 }
             }
+        }
+
+        if(lightInitialized)
+        {
+            RenderLight(mRenderer);
         }
     }
 
@@ -524,6 +534,14 @@ namespace minieditor
         {
             SDL_DestroyTexture(tile.texture);
         }
+
+        // Destruction des texture de lumiere
+        for(auto& light : mLights)
+        {
+            SDL_DestroyTexture(light.mTexture);
+        }
+        
+        SDL_DestroyTexture(mlightMap);
     }
 
     int Level::FindID(int tileID)
@@ -587,8 +605,58 @@ namespace minieditor
         size = size + 1.0f;
         
         SDL_FRect selcetionSquare = {static_cast<float>(x), static_cast<float>(y), size, size};
-        SDL_SetRenderDrawColor(mRenderer, 0, 255, 255, 255);
+        SDL_SetRenderDrawColor(mRenderer, 255, 255, 0, 255);
         SDL_RenderRect(mRenderer, &selcetionSquare);
+    }
+
+    void Level::RenderLight(SDL_Renderer* mRenderer)
+    {
+        SDL_SetRenderTarget(mRenderer, mlightMap);
+
+        SDL_SetRenderDrawBlendMode(mRenderer, SDL_BLENDMODE_BLEND);
+        SDL_SetRenderDrawColor(mRenderer, mambient, mambient, mambient, mglobalLightIntensity);
+        SDL_RenderFillRect(mRenderer, NULL);
+
+        SDL_RenderTexture(mRenderer, mLights[0].mTexture, nullptr, &mLights[0].props);
+
+        SDL_SetRenderTarget(mRenderer, nullptr);
+        SDL_RenderTexture(mRenderer, mlightMap, nullptr, nullptr);
+
+        SDL_SetTextureColorMod(mLights[0].mTexture, mLights[0].colorMod.r, mLights[0].colorMod.g, mLights[0].colorMod.b);
+        SDL_RenderTexture(mRenderer, mLights[0].mTexture, nullptr, &mLights[0].props);
+    }
+
+    bool Level::InitLight(SDL_Renderer* mRenderer)
+    {
+        Light light;
+
+        light.mTexture = IMG_LoadTexture(mRenderer, "build/Assets/Lights/light.png");
+        if(!light.mTexture)
+        {
+            std::cout << "Impossible de charger la texture de lumiere !" << std::endl;
+            return false;
+        }
+
+        SDL_SetTextureBlendMode(light.mTexture, SDL_BLENDMODE_ADD);
+        light.colorMod.r = 155;
+        light.colorMod.b = 155;
+        light.colorMod.g = 155;
+        light.colorMod.a = 255;
+
+        light.props = SDL_FRect{512.0f, 496.0f, 256.0f, 256.0f};
+
+        mLights.push_back(light);
+
+        mlightMap = SDL_CreateTexture(
+            mRenderer,
+            SDL_PIXELFORMAT_RGBA8888,
+            SDL_TEXTUREACCESS_TARGET,
+            1024, 992
+        );
+
+        SDL_SetTextureBlendMode(mlightMap, SDL_BLENDMODE_MOD);
+
+        return true;
     }
 }
 

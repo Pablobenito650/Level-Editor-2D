@@ -21,6 +21,17 @@ namespace minieditor
     };
 
     /**
+     * @brief lumieres simples
+     */
+    struct Light
+    {
+        std::string mName  = "Light";
+        SDL_Texture* mTexture;
+        SDL_FRect props;
+        SDL_Color colorMod;
+    };
+
+    /**
      * @brief structure pour les tiles placees dans la scene
      */
     struct TileInScene : TileForTS
@@ -62,6 +73,7 @@ namespace minieditor
             static int mcurrentLayerID;
             
             static std::vector<Layer> mLayers;
+            static std::vector<Light> mLights;
             std::vector<int> musedIDs;
             static std::string mfileName;
             static const std::string msavePath;
@@ -77,15 +89,19 @@ namespace minieditor
             static int mGridWidth;
             static int mtileSize;
             static int mLayerCount;
+            static int mglobalLightIntensity;
             
             SDL_Event event;
             SDL_FRect mcamera = {0.0f, 0.0f, 1024.0f, 992.0f};
+            SDL_Texture* mlightMap;
 
             std::string mtilesPath = "build/Assets/Tiles/";
 
             int mMouseX;
             int mMouseY; 
-            static int mindex;           
+            bool lightInitialized = false;
+            static int mindex;  
+            static int mambient;         
 
             bool mPlace = false;
 
@@ -196,6 +212,16 @@ namespace minieditor
              * @brief dessiner un carre au tour de la tile selectionnee
              */
             void DrawSelectionSquare(SDL_Renderer* mRenderer, int x, int y, float size);
+
+            /**
+             * @brief Initialisation de lumieres
+             */
+            bool InitLight(SDL_Renderer* mRenderer);
+
+            /**
+             * @brief rendu de lumieres 
+             */
+            void RenderLight(SDL_Renderer* mRenderer);
     };
 } // namespace minieditor
 

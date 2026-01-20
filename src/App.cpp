@@ -34,6 +34,7 @@ namespace minieditor
             // Initialisation des tiles depuis le dossier Assets
             mLevel.WriteTileSet();
             mLevel.InitTiles(mRenderer);
+            mLevel.lightInitialized = mLevel.InitLight(mRenderer);
 
             // Boucle principale
             while(mIsRunning)

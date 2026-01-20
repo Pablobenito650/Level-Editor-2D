@@ -54,9 +54,20 @@ namespace minieditor
                 255
             );
 
+            ImGui::Separator();
+
             // Choisir le nom de la scene
             ImGui::InputText("Scene", &Level::mfileName);
-        
+
+            ImGui::Separator();
+
+            ImGui::Text("Global Lightning");
+            ImGui::SliderInt("Intensity", &Level::mglobalLightIntensity, 0, 255);
+            ImGui::SliderInt("Ambient", &Level::mambient, 0, 255);
+            
+            ImGui::Separator();
+
+            ImGui::Text("Actions");
             // mode selection de tile deja pose dans la scene
             ImGui::Checkbox("Mode Selection", &Level::mmodeSelection);
             
@@ -76,6 +87,8 @@ namespace minieditor
 
                 ImGui::EndCombo();
             }
+
+            ImGui::Separator();
             
             ImGui::Text("Tiles Picker");
             // Afficher dans la fenetre ImGui toutes les images presentes dans les Assets en les rendant selectionnable (tileSet)
@@ -106,6 +119,37 @@ namespace minieditor
 
             ImGui::End();
         }
+
+        {
+            ImGui::Begin("Local Lighning");
+
+            ImGui::InputText("Name", &Level::mLights[0].mName);
+
+            ImGui::Separator();
+
+            ImGui::Text("Couleur et intensite");
+
+            int x = Level::mLights[0].colorMod.r;
+            int y = Level::mLights[0].colorMod.g;
+            int z = Level::mLights[0].colorMod.b;
+
+            ImGui::SliderInt("R ", &x, 0, 255);
+            ImGui::SliderInt("G ", &y, 0, 255);
+            ImGui::SliderInt("B ", &z, 0, 255);
+
+            Level::mLights[0].colorMod.r = x;
+            Level::mLights[0].colorMod.g = y;
+            Level::mLights[0].colorMod.b = z;
+
+            ImGui::Separator();
+            
+            ImGui::Text("Position");
+            ImGui::SliderFloat("X ", &Level::mLights[0].props.x, 0, 1024);
+            ImGui::SliderFloat("Y ", &Level::mLights[0].props.y, 0, 992);
+
+            ImGui::End();
+        }
+        
         // Rendu
         ImGui::Render();
         ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), mRenderer);
@@ -133,13 +177,19 @@ namespace minieditor
                 Level::RemoveTile(x, y);
             }
 
+            ImGui::Separator();
+
             // Afficher l'image definissant la tuile
             ImTextureID _tex = (ImTextureID)Level::mtileSet[_index].texture;
             ImGui::Image(_tex, ImVec2(4*mtileSize, 4*mtileSize));
 
+            ImGui::Separator();
+
             // Afficher son nom dans la scene (modifiable) et l'id de l'image (texture) dont il decoule
             ImGui::InputText("Name", &selectedTile.mName);
             ImGui::Text("ID %d", _id);
+
+            ImGui::Separator();
 
             ImGui::Text("Transform");
             ImGui::Text("Position X %d  Y %d", x * Level::mtileSize, y * Level::mtileSize);
@@ -159,6 +209,8 @@ namespace minieditor
             // nom et id
             std::string _texName = Level::mtileSet[_index].name;
             int _id = Level::mtileSet[_index].tileID;
+
+            ImGui::Separator();
 
             ImGui::Text("%s", _texName.c_str());
             ImGui::Text("ID %d", _id);

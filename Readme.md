@@ -36,11 +36,12 @@ Level Editor 2D/
 ## Fonctionnalites
 
 - **TileMap** : Placer ou supprimer des tiles sur une grille
-- **Sauvegarde** : Sauvegarder dans un format txt structurer avec choix du nom du fichier 
+- **Sauvegarder** : Sauvegarder dans un format txt structurer avec choix du nom du fichier 
 - **Charger** : charger un niveau depuis un fichier txt conforme
-- **Layer** : gestion des couches
+- **Layer** : gestion des couches (dispo: sol, joueur, ui)
 - **RenduSeul** : Possibilite de rendre chaque couche individuellement
 - **Camera** : camera (vue sur la scene)
+- **Lumiere** : Eclairage simple a partir de textures de lumiere (.png dans Assets/Lights et lightmap) et eclairage global avec couche noire transparente
 
 ## 🚀 Installation et Utilisation
 
@@ -100,8 +101,6 @@ python Run.py
 ### Actions clavier/souris
 1. Ctrl+S : sauvegarder le niveau 
 2. Ctrl+O : Charger un niveau 
-## pour les deux cas ci dessus s'assurer que la fenetre Imgui "Project" soit selectionnee
-
 3. R : Recentrer la camera scene
 4. T : Mettre a jour le tile set si l'on a ajouter une image pendant que le programme tournait
 5. Boutton droit de la souris : maintenir et deplacer la souris pour deplacer la camera scene
