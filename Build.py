@@ -13,6 +13,8 @@ class Builder:
         self.build_dir = Path("build")
         self.object_dir = Path("build/Obj")
         self.assets_dir = Path("Assets")
+        self.json_dir = Path("./thirdparty/json")
+        self.ressources_dir = Path("Ressources")
         self.object_files = {}
         self.output_name = "LevelEditor.exe" if self.platform == "win32" else "LevelEditor"
 
@@ -82,6 +84,7 @@ class Builder:
         # copie des resources necessaires
         print("\nCopie des ressources....")
         shutil.copytree(self.assets_dir, os.path.join(self.build_dir, "Assets"), dirs_exist_ok=True)
+        shutil.copytree(self.ressources_dir, self.build_dir, dirs_exist_ok=True)
         print("Assets copies avec succes")
         
     def Main(self) -> int:
@@ -126,7 +129,8 @@ class Builder:
         includes = [
             f"-I{self.imgui_dir}",
             f"-I{self.imgui_dir}/backends",
-            f"-I{self.imgui_dir}/misc/cpp"
+            f"-I{self.imgui_dir}/misc/cpp",
+            f"-I{self.json_dir}/single_include"
         ]
 
         return includes

@@ -15,15 +15,16 @@ namespace minieditor
     class GUI
     {
         public:
-            ImVec4 mclearColor = ImVec4(0.0f, 0.0f, 0.0f, 1.0f);
-            const float mtileSize = 32.0f;
-            const float mpadding = 4.0f;
-            const int mcolumns = 4;
+            ImVec4 mClearColor = ImVec4(0.0f, 0.0f, 0.0f, 1.0f);
+            const float TILE_SIZE = 32.0f;
+            const float PADDING = 4.0f;
+            const int COLUMNS = 4;
 
         public:
-            void GUISet(SDL_Window* window, SDL_Renderer* mRenderer);
-            void TestGUI(SDL_Renderer* mRenderer);
+            void GUISet(SDL_Window* window, SDL_Renderer* renderer);
+            void TestGUI(SDL_Renderer* renderer);
             void DrawSelectedTile();
+            void DrawLightSettings();
     };
 }
 

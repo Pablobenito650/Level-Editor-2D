@@ -105,3 +105,14 @@ python Run.py
 4. T : Mettre a jour le tile set si l'on a ajouter une image pendant que le programme tournait
 5. Boutton droit de la souris : maintenir et deplacer la souris pour deplacer la camera scene
 
+### Limites
+
+1. Difficultes a changer les positions des textures du aux differences positionGrille (reelle) et positionEcran (prenant non seulement en compte l'ecran mais aussi la camera).
+
+2. Le systeme de lumiere est tres basique et ne gere pas les obstacles.
+3. Pour le moment l'enregistrement des proprietes de scene (eclairage, etc) n'est pas encore possible
+4. Pas de systeme d'undo/redo
+5. Pas d'augmentation du nombre de couche
+6. La vitesse de deplacement des couche est uniforme: tout les elements de la couche "UI" doivent etre a la meme position a l'ecran 
+meme si l'on deplace les autres object donc les autres couches ("Sol", "Joueur")
+

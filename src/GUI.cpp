@@ -2,18 +2,18 @@
 
 namespace minieditor
 {
-    void GUI::GUISet(SDL_Window* window, SDL_Renderer* mRenderer)
+    void GUI::GUISet(SDL_Window* window, SDL_Renderer* renderer)
     {
         // Initialisation de Dear ImGUI
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
         ImGui::StyleColorsDark();
 
-        ImGui_ImplSDL3_InitForSDLRenderer(window, mRenderer);
-        ImGui_ImplSDLRenderer3_Init(mRenderer);
+        ImGui_ImplSDL3_InitForSDLRenderer(window, renderer);
+        ImGui_ImplSDLRenderer3_Init(renderer);
     }
 
-    void GUI::TestGUI(SDL_Renderer* mRenderer)
+    void GUI::TestGUI(SDL_Renderer* renderer)
     {
         ImGui_ImplSDLRenderer3_NewFrame();
         ImGui_ImplSDL3_NewFrame();
@@ -39,49 +39,59 @@ namespace minieditor
                     ImGui::EndMenu();
                 }
 
+                if(ImGui::BeginMenu("GameObject"))
+                {
+                    if(ImGui::MenuItem("Light"))
+                    {
+                        Level::AddLight(renderer);
+                    }
+
+                    ImGui::EndMenu();
+                }
+
                 ImGui::EndMainMenuBar();
             }
             // Creation de la fenetre Dear ImGUI
             ImGui::Begin("Project");
 
             // Gestion du backGround
-            ImGui::ColorEdit3("BackGround", (float*)&mclearColor);
+            ImGui::ColorEdit3("BackGround", (float*)&mClearColor);
             SDL_SetRenderDrawColor(
-                mRenderer,
-                (Uint8)(mclearColor.x * 255),
-                (Uint8)(mclearColor.y * 255),
-                (Uint8)(mclearColor.z * 255),
+                renderer,
+                (Uint8)(mClearColor.x * 255),
+                (Uint8)(mClearColor.y * 255),
+                (Uint8)(mClearColor.z * 255),
                 255
             );
 
             ImGui::Separator();
 
             // Choisir le nom de la scene
-            ImGui::InputText("Scene", &Level::mfileName);
+            ImGui::InputText("Scene", &Level::sFileName);
 
             ImGui::Separator();
 
             ImGui::Text("Global Lightning");
-            ImGui::SliderInt("Intensity", &Level::mglobalLightIntensity, 0, 255);
-            ImGui::SliderInt("Ambient", &Level::mambient, 0, 255);
+            ImGui::SliderInt("Intensity", &Level::sGlobalLightIntensity, 0, 255);
+            ImGui::SliderInt("Ambient", &Level::sAmbient, 0, 255);
             
             ImGui::Separator();
 
             ImGui::Text("Actions");
             // mode selection de tile deja pose dans la scene
-            ImGui::Checkbox("Mode Selection", &Level::mmodeSelection);
+            ImGui::Checkbox("Mode Selection", &Level::sModeSelection);
             
             // Activer ou desactiver le Rendu monocouche
-            ImGui::Checkbox("Single Rendering", &Level::mSingleLayerRendering);
+            ImGui::Checkbox("Single Rendering", &Level::sSingleLayerRendering);
 
             // Liste deroulante pour la selection de la couche courante
-            if(ImGui::BeginCombo("Layer", Level::mLayers[Level::mcurrentLayerID].name.c_str()))
+            if(ImGui::BeginCombo("Layer", Level::sLayers[Level::sCurrentLayerID].mName.c_str()))
             {
-                for (int i = 0; i < Level::mLayerCount; i++)
+                for (int i = 0; i < Level::sLayerCount; i++)
                 {
-                    bool selected = (Level::mcurrentLayerID == i);
+                    bool selected = (Level::sCurrentLayerID == i);
 
-                    if(ImGui::Selectable(Level::mLayers[i].name.c_str(), selected)) Level::mcurrentLayerID = i;
+                    if(ImGui::Selectable(Level::sLayers[i].mName.c_str(), selected)) Level::sCurrentLayerID = i;
                     if(selected) ImGui::SetItemDefaultFocus();
                 }
 
@@ -92,17 +102,17 @@ namespace minieditor
             
             ImGui::Text("Tiles Picker");
             // Afficher dans la fenetre ImGui toutes les images presentes dans les Assets en les rendant selectionnable (tileSet)
-            ImGui::Columns(mcolumns, nullptr, false);
+            ImGui::Columns(COLUMNS, nullptr, false);
 
-            for(const auto& tile : Level::mtileSet)
+            for(const auto& tile : Level::sTileSet)
             {
-                ImTextureID _texID = (ImTextureID)tile.texture;
+                ImTextureID texID = (ImTextureID)tile.mTexture;
 
-                bool _selected = (tile.tileID == Level::mcurrentTileID);
+                bool selected = (tile.mID == Level::sCurrentTileID);
                 
-                if(ImGui::ImageButton(tile.name.c_str(), _texID, ImVec2(mtileSize, mtileSize), ImVec2(0, 0), ImVec2(1, 1), _selected ? ImVec4(1, 1, 0, 1) : ImVec4(0, 0, 0, 1)))
+                if(ImGui::ImageButton(tile.mName.c_str(), texID, ImVec2(TILE_SIZE, TILE_SIZE), ImVec2(0, 0), ImVec2(1, 1), selected ? ImVec4(1, 1, 0, 1) : ImVec4(0, 0, 0, 1)))
                 {
-                    Level::mcurrentTileID = tile.tileID;
+                    Level::sCurrentTileID = tile.mID;
                 }
 
                 ImGui::NextColumn();
@@ -123,54 +133,32 @@ namespace minieditor
         {
             ImGui::Begin("Local Lighning");
 
-            ImGui::InputText("Name", &Level::mLights[0].mName);
-
-            ImGui::Separator();
-
-            ImGui::Text("Couleur et intensite");
-
-            int x = Level::mLights[0].colorMod.r;
-            int y = Level::mLights[0].colorMod.g;
-            int z = Level::mLights[0].colorMod.b;
-
-            ImGui::SliderInt("R ", &x, 0, 255);
-            ImGui::SliderInt("G ", &y, 0, 255);
-            ImGui::SliderInt("B ", &z, 0, 255);
-
-            Level::mLights[0].colorMod.r = x;
-            Level::mLights[0].colorMod.g = y;
-            Level::mLights[0].colorMod.b = z;
-
-            ImGui::Separator();
-            
-            ImGui::Text("Position");
-            ImGui::SliderFloat("X ", &Level::mLights[0].props.x, 0, 1024);
-            ImGui::SliderFloat("Y ", &Level::mLights[0].props.y, 0, 992);
+            DrawLightSettings();
 
             ImGui::End();
         }
         
         // Rendu
         ImGui::Render();
-        ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), mRenderer);
+        ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), renderer);
     }
 
     void GUI::DrawSelectedTile()
     {
         // Afficher la tile selectionner dans la scene
-        if(Level::mmodeSelection && Level::mLayers[Level::mcurrentLayerID].hierarchie.size() > 0)
+        if(Level::sModeSelection && Level::sLayers[Level::sCurrentLayerID].mHierarchie.size() > 0)
         {
             Level::ResetSelectionStatus();
 
-            TileInScene& selectedTile = Level::mLayers[Level::mcurrentLayerID].hierarchie[Level::mindex];
+            TileInScene& selectedTile = Level::sLayers[Level::sCurrentLayerID].mHierarchie[Level::sIndex];
             selectedTile.mIsSelected = true;
 
-            int _id = selectedTile.mID;
-            int _index = Level::FindID(_id);
+            int id = selectedTile.mID;
+            int index = Level::FindID(id);
 
             // Afficher sa position dans le plan
-            int x = selectedTile.mgridX;
-            int y = selectedTile.mgridY;
+            int x = selectedTile.mGridX;
+            int y = selectedTile.mGridY;
 
             if(ImGui::Button("Suppr"))
             {
@@ -180,40 +168,74 @@ namespace minieditor
             ImGui::Separator();
 
             // Afficher l'image definissant la tuile
-            ImTextureID _tex = (ImTextureID)Level::mtileSet[_index].texture;
-            ImGui::Image(_tex, ImVec2(4*mtileSize, 4*mtileSize));
+            ImTextureID tex = (ImTextureID)Level::sTileSet[index].mTexture;
+            ImGui::Image(tex, ImVec2(4*TILE_SIZE, 4*TILE_SIZE));
 
             ImGui::Separator();
 
             // Afficher son nom dans la scene (modifiable) et l'id de l'image (texture) dont il decoule
             ImGui::InputText("Name", &selectedTile.mName);
-            ImGui::Text("ID %d", _id);
+            ImGui::Text("ID %d", id);
 
             ImGui::Separator();
 
             ImGui::Text("Transform");
-            ImGui::Text("Position X %d  Y %d", x * Level::mtileSize, y * Level::mtileSize);
-            // Afficher et gere le scale de la tuile dans la scene
-            ImGui::SliderFloat("Scale", &selectedTile.size, 0.5f, 2.0f);
+            ImGui::Text("Position X %d  Y %d", x * Level::sTileSize, y * Level::sTileSize);
         }
 
         // Afficher la tile (a placee) selectionnee en grand avec plus de detail
-        if(Level::mcurrentTileID != -1 && !Level::mmodeSelection)
+        if(Level::sCurrentTileID != -1 && !Level::sModeSelection)
         {
-            int _index = Level::FindID(Level::mcurrentTileID);
+            int index = Level::FindID(Level::sCurrentTileID);
 
             // Texture
-            ImTextureID _tex = (ImTextureID)Level::mtileSet[_index].texture;
-            ImGui::Image(_tex, ImVec2(4*mtileSize, 4*mtileSize));
+            ImTextureID tex = (ImTextureID)Level::sTileSet[index].mTexture;
+            ImGui::Image(tex, ImVec2(4*TILE_SIZE, 4*TILE_SIZE));
 
             // nom et id
-            std::string _texName = Level::mtileSet[_index].name;
-            int _id = Level::mtileSet[_index].tileID;
+            std::string texName = Level::sTileSet[index].mName;
+            int id = Level::sTileSet[index].mID;
 
             ImGui::Separator();
 
-            ImGui::Text("%s", _texName.c_str());
-            ImGui::Text("ID %d", _id);
+            ImGui::Text("%s", texName.c_str());
+            ImGui::Text("ID %d", id);
+        }
+    }
+
+    void GUI::DrawLightSettings()
+    {
+        if(Level::sLights.size() > 0)
+        {
+            ImGui::Checkbox("A", &Level::sLights[0].mActivate);
+            ImGui::SameLine();
+            ImGui::InputText("Name", &Level::sLights[0].mName);
+
+            ImGui::Separator();
+
+            ImGui::Text("Couleur et intensite");
+
+            int x = Level::sLights[0].mColorMod.r;
+            int y = Level::sLights[0].mColorMod.g;
+            int z = Level::sLights[0].mColorMod.b;
+
+            ImGui::Checkbox("Rayonnant", &Level::sLights[0].mIsRayonnant);
+            ImGui::SliderInt("R ", &x, 0, 255);
+            ImGui::SliderInt("G ", &y, 0, 255);
+            ImGui::SliderInt("B ", &z, 0, 255);
+
+            Level::sLights[0].mColorMod.r = x;
+            Level::sLights[0].mColorMod.g = y;
+            Level::sLights[0].mColorMod.b = z;
+
+            ImGui::Separator();
+
+            const int limitX = Level::sGridWidth * Level::sTileSize - Level::sLightSize;
+            const int limitY = Level::sGridHeight * Level::sTileSize - Level::sLightSize;
+        
+            ImGui::Text("Position" );
+            ImGui::SliderInt("X ", &Level::sLights[0].mFixedPosX, 0, limitX);
+            ImGui::SliderInt("Y ", &Level::sLights[0].mFixedPosY, 0, limitY);
         }
     }
 }

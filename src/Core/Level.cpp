@@ -2,40 +2,43 @@
 
 namespace minieditor
 {
-    std::vector<Tile> Level::mtileSet;
-    std::vector<Light> Level::mLights;
-    int Level::mcurrentTileID = -1;
-    int Level::mcurrentLayerID = 0;
-    int Level::mambient = 10;
-    std::vector<Layer> Level::mLayers;
-    std::string Level::mfileName = "Level";
-    const std::string Level::msavePath = "build/Levels/";
-    const std::string Level::mtileSetPath = "build/Assets/";
-    const std::string Level::mextension = ".txt";
+    // Definiions
+    std::vector<Tile> Level::sTileSet;
+    std::vector<Light> Level::sLights;
+    int Level::sCurrentTileID = -1;
+    int Level::sCurrentLayerID = 0;
+    int Level::sAmbient = 255;
+    std::vector<Layer> Level::sLayers;
+    std::string Level::sFileName = "Level";
+    const std::string Level::SAVE_PATH = "build/Levels/";
+    const std::string Level::TILE_SET_PATH = "build/Assets/";
+    const std::string Level::EXTENSION = ".txt";
 
-    bool Level::mmodeSelection = false;
-    bool Level::mIsLoading = false;
-    bool Level::mSingleLayerRendering = false;
+    bool Level::sModeSelection= false;
+    bool Level::sIsLoading = false;
+    bool Level::sSingleLayerRendering = false;
+    bool Level::sCameraIsMoving = false;
 
-    int Level::mGridHeight = 31;
-    int Level::mGridWidth = 32;
-    int Level::mtileSize = 32;
-    int Level::mLayerCount = 3;
-    int Level::mindex = 0;
-    int Level::mglobalLightIntensity = 100;
+    int Level::sGridHeight = 31;
+    int Level::sGridWidth = 32;
+    int Level::sTileSize = 32;
+    float Level::sLightSize = 256.0f;
+    int Level::sLayerCount = 3;
+    int Level::sIndex = 0;
+    int Level::sGlobalLightIntensity = 100;
 
     void Level::TilePlacement()
     {
         if(mPlace)
         {
-            // Conversion coordonnees ecran en coordonnees grille
-            float worldX = mMouseX + mcamera.x;
-            float worldY = mMouseY + mcamera.y;
-            int xPos = worldX / mtileSize;
-            int yPos = worldY / mtileSize;
+            // Conversion coordonnees ecran en coordonnees grille prennant zoom et camera en compte
+            float worldX = mMouseX / mCamera.mZoom + mCamera.x;
+            float worldY = mMouseY / mCamera.mZoom + mCamera.y;
+            int xPos = worldX / sTileSize;
+            int yPos = worldY / sTileSize;
 
             // Ne rien faire lorsque le clique est effectuer hors grille
-            if(xPos < 0 || xPos >= mGridWidth || yPos < 0 || yPos >= mGridHeight)
+            if(xPos < 0 || xPos >= sGridWidth || yPos < 0 || yPos >= sGridHeight)
             {
                 std::cout << "Grid error : Out of bounds\n";
                 mPlace = false;
@@ -43,26 +46,25 @@ namespace minieditor
             }
 
             // Trouver l'index de la grille (xPos, yPos) dans la hierarchie de la couche courante
-            mindex = FindIDInScene(mcurrentLayerID, xPos, yPos);
+            sIndex = FindIDInScene(sCurrentLayerID, xPos, yPos);
 
             // Ajouter ou retirer une tile de la grille si on est pas en mode selection de tuile
-            if(!mmodeSelection)
+            if(!sModeSelection)
             {
                 // Ajouter ou retirer en fonction de l'id (-1 pour retirer)
-                mLayers[mcurrentLayerID].Grid[yPos][xPos] = mcurrentTileID;
+                sLayers[sCurrentLayerID].mGrid[yPos][xPos] = sCurrentTileID;
 
                 ResetSelectionStatus();
                 
                 // Ajouter la tuile a la scene (hierarchie de la couche courante)
-                TileInScene _tileInScene;
-                _tileInScene.mID = mcurrentTileID;
-                _tileInScene.mName = "Tile";
-                _tileInScene.size = 1.0f;
-                _tileInScene.mIsSelected = true;
-                _tileInScene.mgridX = xPos;
-                _tileInScene.mgridY = yPos;
+                TileInScene tileInScene;
+                tileInScene.mID = sCurrentTileID;
+                tileInScene.mName = "Tile";
+                tileInScene.mIsSelected = true;
+                tileInScene.mGridX = xPos;
+                tileInScene.mGridY = yPos;
 
-                mLayers[mcurrentLayerID].hierarchie.push_back(_tileInScene);
+                sLayers[sCurrentLayerID].mHierarchie.push_back(tileInScene);
             }
   
             mPlace = false;
@@ -71,9 +73,9 @@ namespace minieditor
 
     void Level::RemoveTile(int gridX, int gridY)
     {
-        int index = FindIDInScene(mcurrentLayerID, gridX, gridY);
-        mLayers[mcurrentLayerID].Grid[gridY][gridX] = -1;
-        mLayers[mcurrentLayerID].hierarchie.erase(mLayers[mcurrentLayerID].hierarchie.begin() + index);
+        int index = FindIDInScene(sCurrentLayerID, gridX, gridY);
+        sLayers[sCurrentLayerID].mGrid[gridY][gridX] = -1;
+        sLayers[sCurrentLayerID].mHierarchie.erase(sLayers[sCurrentLayerID].mHierarchie.begin() + index);
     }
 
     void Level::Update()
@@ -81,49 +83,49 @@ namespace minieditor
         TilePlacement();
     }
 
-    void Level::Render(SDL_Renderer* mRenderer)
+    void Level::Render(SDL_Renderer* renderer)
     {      
-        if(mIsLoading)
+        if(sIsLoading)
         {
             return;
         }
 
-        SDL_SetRenderTarget(mRenderer, nullptr);
+        SDL_SetRenderTarget(renderer, nullptr);
 
-        if(mSingleLayerRendering)
+        if(sSingleLayerRendering)
         {
-            for (int y = 0; y < mGridHeight; y++)
+            for (int y = 0; y < sGridHeight; y++)
             {
-                for (int x = 0; x < mGridWidth; x++)
+                for (int x = 0; x < sGridWidth; x++)
                 {
-                    int _tileID = mLayers[mcurrentLayerID].Grid[y][x];
-                    if(_tileID == -1) continue; 
+                    int tileID = sLayers[sCurrentLayerID].mGrid[y][x];
+                    if(tileID == -1) continue; 
                     
                     // Trouver l'index de la dans la hierarchie de la couche courante
-                    int _indexA = FindIDInScene(mcurrentLayerID, x, y);
+                    int indexA = FindIDInScene(sCurrentLayerID, x, y);
 
                     SDL_FRect rect;
-                    rect.x = (x * mtileSize) - mcamera.x;
-                    rect.y = (y * mtileSize) - mcamera.y;
-                    rect.w = mtileSize * mLayers[mcurrentLayerID].hierarchie[_indexA].size;
-                    rect.h = mtileSize * mLayers[mcurrentLayerID].hierarchie[_indexA].size;
+                    rect.x = (x * sTileSize - mCamera.x) * mCamera.mZoom;
+                    rect.y = (y * sTileSize - mCamera.y) * mCamera.mZoom;
+                    rect.w = sTileSize * mCamera.mZoom;
+                    rect.h = sTileSize * mCamera.mZoom;
 
                     // Trouver l'index correspondant a l'id dans le tileset
-                    int _indexB = FindID(_tileID);
+                    int indexB = FindID(tileID);
 
-                    SDL_Texture* _tex = mtileSet[_indexB].texture;
-                    if(!_tex)
+                    SDL_Texture* tex = sTileSet[indexB].mTexture;
+                    if(!tex)
                     { 
-                        SDL_SetRenderDrawColor(mRenderer, 255, 0, 255, 255);
-                        SDL_RenderRect(mRenderer, &rect);
+                        SDL_SetRenderDrawColor(renderer, 255, 0, 255, 255);
+                        SDL_RenderRect(renderer, &rect);
                     }
                     else
                     {
-                        SDL_RenderTexture(mRenderer, _tex, nullptr, &rect);
+                        SDL_RenderTexture(renderer, tex, nullptr, &rect);
 
-                        if(mLayers[mcurrentLayerID].hierarchie[_indexA].mIsSelected)
+                        if(sLayers[sCurrentLayerID].mHierarchie[indexA].mIsSelected)
                         {
-                            DrawSelectionSquare(mRenderer, rect.x, rect.y, rect.w);
+                            DrawSelectionSquare(renderer, rect.x, rect.y, rect.w);
                         }
                     }
                 }
@@ -131,40 +133,40 @@ namespace minieditor
         }
         else
         {
-            for (int l = 0; l < mLayerCount; l++)
+            for (int l = 0; l < sLayerCount; l++)
             {
-                for (int y = 0; y < mGridHeight; y++)
+                for (int y = 0; y < sGridHeight; y++)
                 {
-                    for (int x = 0; x < mGridWidth; x++)
+                    for (int x = 0; x < sGridWidth; x++)
                     {
-                        int _tileID = mLayers[l].Grid[y][x];
-                        if(_tileID == -1) continue;
+                        int tileID = sLayers[l].mGrid[y][x];
+                        if(tileID == -1) continue;
                         
                         // Trouver l'index de la dans la hierarchie de la couche courante
-                        int _indexA = FindIDInScene(l, x, y);
+                        int indexA = FindIDInScene(l, x, y);
 
                         SDL_FRect rect;
-                        rect.x = (x * mtileSize) - mcamera.x;
-                        rect.y = (y * mtileSize) - mcamera.y;
-                        rect.w = mtileSize * mLayers[l].hierarchie[_indexA].size;
-                        rect.h = mtileSize * mLayers[l].hierarchie[_indexA].size;
+                        rect.x = (x * sTileSize - mCamera.x) * mCamera.mZoom;
+                        rect.y = (y * sTileSize - mCamera.y) * mCamera.mZoom;
+                        rect.w = sTileSize * mCamera.mZoom;
+                        rect.h = sTileSize * mCamera.mZoom;
                         
                         // Trouver l'index correspondant a l'id dans le tileset
-                        int _indexB = FindID(_tileID);
+                        int indexB = FindID(tileID);
 
-                        SDL_Texture* _tex = mtileSet[_indexB].texture;
-                        if(!_tex)
+                        SDL_Texture* tex = sTileSet[indexB].mTexture;
+                        if(!tex)
                         { 
-                            SDL_SetRenderDrawColor(mRenderer, 255, 0, 255, 255);
-                            SDL_RenderRect(mRenderer, &rect);
+                            SDL_SetRenderDrawColor(renderer, 255, 0, 255, 255);
+                            SDL_RenderRect(renderer, &rect);
                         }
                         else
                         {
-                            SDL_RenderTexture(mRenderer, _tex, nullptr, &rect);
+                            SDL_RenderTexture(renderer, tex, nullptr, &rect);
 
-                            if(l == mcurrentLayerID && mLayers[l].hierarchie[_indexA].mIsSelected)
+                            if(l == sCurrentLayerID && sLayers[l].mHierarchie[indexA].mIsSelected)
                             {
-                                DrawSelectionSquare(mRenderer, rect.x, rect.y, rect.w);
+                                DrawSelectionSquare(renderer, rect.x, rect.y, rect.w);
                             }
                         }
                     }
@@ -172,10 +174,7 @@ namespace minieditor
             }
         }
 
-        if(lightInitialized)
-        {
-            RenderLight(mRenderer);
-        }
+        RenderLight(renderer);
     }
 
     void Level::MouseGetter(SDL_Event event)
@@ -191,10 +190,43 @@ namespace minieditor
 
         if(event.type == SDL_EVENT_MOUSE_MOTION && (event.motion.state & SDL_BUTTON_RMASK))
         {
+            sCameraIsMoving = true;
             // mettre a jour la position de la camera quand la souris bouge et que le bouton droit est enfonce
-            mcamera.x -= event.motion.xrel;
-            mcamera.y -= event.motion.yrel;
+            mCamera.x -= event.motion.xrel / mCamera.mZoom;
+            mCamera.y -= event.motion.yrel / mCamera.mZoom;
         }
+        else
+        {
+            sCameraIsMoving = false;
+        }
+
+        // Gestion du soom 
+        if(event.type == SDL_EVENT_MOUSE_WHEEL)
+        {
+            int mouseX = event.wheel.x;
+            int mouseY = event.wheel.y;
+
+            bool zoom = (event.wheel.y > 0);
+
+            HandleZoom(mCamera, zoom);
+        }
+    }
+
+    void Level::HandleZoom(Camera& camera, bool zoom)
+    {
+        if(zoom)
+        {
+            // Zoomer
+            camera.mZoom *= 1.0f + camera.mZoomSpeed;
+        }
+        else
+        {
+            // Dezoomer
+            camera.mZoom /= 1.0f + camera.mZoomSpeed;
+        }
+
+        // Limiter le zoom pour eviter le zoom infini et le valeurs negatives
+        camera.mZoom = std::clamp(camera.mZoom, camera.mMinZoom, camera.mMaxZoom);
     }
 
     void Level::InitLayers()
@@ -202,21 +234,21 @@ namespace minieditor
         // Initialiser les couches
         // Chaque grille de couche est initialiser avec les valeurs -1 pour vide
         std::cout << "Initialisation des couches\n";
-        mLayers.resize(mLayerCount);
+        sLayers.resize(sLayerCount);
 
-        mLayers[0].name = "Sol";
-        mLayers[0].Grid.resize(mGridHeight, std::vector<int>(mGridWidth, -1));
+        sLayers[0].mName = "Sol";
+        sLayers[0].mGrid.resize(sGridHeight, std::vector<int>(sGridWidth, -1));
 
-        mLayers[1].name = "Joueur";
-        mLayers[1].Grid.resize(mGridHeight, std::vector<int>(mGridWidth, -1));
+        sLayers[1].mName = "Joueur";
+        sLayers[1].mGrid.resize(sGridHeight, std::vector<int>(sGridWidth, -1));
 
-        mLayers[2].name = "UI";
-        mLayers[2].Grid.resize(mGridHeight, std::vector<int>(mGridWidth, -1));
+        sLayers[2].mName = "UI";
+        sLayers[2].mGrid.resize(sGridHeight, std::vector<int>(sGridWidth, -1));
 
         std::cout << "Couches initialisees\n";
     }
 
-    void Level::InitTiles(SDL_Renderer* mRenderer)
+    void Level::InitTiles(SDL_Renderer* renderer)
     {
         // Creations des tiles depuis le fichier de mapping de tile-id
         std::cout << "Initialisation des tuiles\n";
@@ -237,51 +269,51 @@ namespace minieditor
             return;
         }
 
-        int _id;
-        std::string _fileName;
+        int id;
+        std::string fileName;
 
         // Creations des tiles
-        while(file >> _id >> _fileName)
+        while(file >> id >> fileName)
         {
-            Tile _tile;
+            Tile tile;
 
-            _tile.tileID = _id;
+            tile.mID = id;
 
-            if(IDIsUsed(_tile.tileID))
+            if(IDIsUsed(tile.mID))
             {
                 continue;
             }
 
             // Ajouter l'id dans les IDs utilises
-            musedIDs.push_back(_tile.tileID);
+            mUsedIDs.push_back(tile.mID);
 
-            _tile.name = std::filesystem::path(_fileName).string();
+            tile.mName = std::filesystem::path(fileName).string();
 
-            std::filesystem::path _tilePath = mtilesPath + _fileName;
+            std::filesystem::path tilePath = mTilesPath + fileName;
 
-            if(!std::filesystem::exists(_tilePath))
+            if(!std::filesystem::exists(tilePath))
             {
-                std::cout << "Tile manquante " << _tilePath << "\n";
+                std::cout << "Tile manquante " << tilePath << "\n";
                 continue;
             }
 
             // Creer la texture depuis l'images (.png)
-            _tile.texture = IMG_LoadTexture(mRenderer, _tilePath.c_str());
-            if(!_tile.texture)
+            tile.mTexture = IMG_LoadTexture(renderer, tilePath.c_str());
+            if(!tile.mTexture)
             {
-                std::cout << "Impossible de charger la texture " << _tilePath << "\n";
+                std::cout << "Impossible de charger la texture " << tilePath << "\n";
                 continue;
             }
 
             // Ajout
-            mtileSet.push_back({_tile.tileID, _tile.name, _tile.texture});
+            sTileSet.push_back({{tile.mID, tile.mName}, tile.mTexture});
         }
 
-        std::cout << mtileSet.size() << " Tuiles initialisees\n";
+        std::cout << sTileSet.size() << " Tuiles initialisees\n";
 
-        if(mtileSet.size() != 0)
+        if(sTileSet.size() != 0)
         {
-            mcurrentTileID = 0;
+            sCurrentTileID = 0;
         }
     }
 
@@ -292,38 +324,38 @@ namespace minieditor
 
     void Level::SaveLevel()
     {
-        std::cout << "\nSauvegarde du niveau " << mfileName << ".txt\n";
-        std::filesystem::create_directories(msavePath);
+        std::cout << "\nSauvegarde du niveau " << sFileName << ".txt\n";
+        std::filesystem::create_directories(SAVE_PATH);
         
         // fichier de sauvegarde du niveau
-        std::string completName = msavePath + mfileName + mextension;
+        std::string completName = SAVE_PATH + sFileName + EXTENSION;
         std::ofstream file(completName);
 
         // fichier de sauvegarde des proprietes de niveau
-        completName = msavePath + mfileName + "Hierarchie" + mextension;
-        std::ofstream levelprops(completName);
+        completName = SAVE_PATH + sFileName + "Hierarchie" + EXTENSION;
+        std::ofstream levelProps(completName);
 
         // Cle du format
         file << "MiniEditorFile" << "\n";
-        levelprops << "MiniEditorFile" << "\n\n";
+        levelProps << "MiniEditorFile" << "\n\n";
 
         // Ecriture du niveau 
-        file << "WIDTH      " << mGridWidth << "\n";
-        file << "HEIGHT     " << mGridHeight << "\n";
+        file << "WIDTH      " << sGridWidth << "\n";
+        file << "HEIGHT     " << sGridHeight << "\n";
 
-        file << "TILESIZE   " << mtileSize << "\n";
+        file << "TILESIZE   " << sTileSize << "\n";
 
-        file << "LAYERCOUNT " << mLayerCount << "\n\n";
+        file << "LAYERCOUNT " << sLayerCount << "\n\n";
 
-        for (int l = 0; l < mLayerCount; l++)
+        for (int l = 0; l < sLayerCount; l++)
         {
-            file << "LAYER " << mLayers[l].name << "\n";
+            file << "LAYER " << sLayers[l].mName << "\n";
 
-            for (int y = 0; y < mGridHeight; y++)
+            for (int y = 0; y < sGridHeight; y++)
             {
-                for (int x = 0; x < mGridWidth; x++)
+                for (int x = 0; x < sGridWidth; x++)
                 {
-                    file << mLayers[l].Grid[y][x] << " ";
+                    file << sLayers[l].mGrid[y][x] << " ";
                 }
 
                 file << "\n";
@@ -333,39 +365,38 @@ namespace minieditor
         }
 
         // Ecriture des propriete du niveau
-        for (int l = 0; l < mLayerCount; l++)
+        for (int l = 0; l < sLayerCount; l++)
         {
-            levelprops << "HIERARCHIESIZE " << mLayers[l].hierarchie.size() << "\n";
+            levelProps << "HIERARCHIESIZE " << sLayers[l].mHierarchie.size() << "\n";
 
-            for (size_t i = 0; i < mLayers[l].hierarchie.size(); i++)
+            for (size_t i = 0; i < sLayers[l].mHierarchie.size(); i++)
             {
-                levelprops << mLayers[l].hierarchie[i].mID << " ";
-                levelprops << mLayers[l].hierarchie[i].mName << " ";
-                levelprops << mLayers[l].hierarchie[i].mgridX << " ";
-                levelprops << mLayers[l].hierarchie[i].mgridY << " ";
-                levelprops << mLayers[l].hierarchie[i].size << "\n";
+                levelProps << sLayers[l].mHierarchie[i].mID << " ";
+                levelProps << sLayers[l].mHierarchie[i].mName << " ";
+                levelProps << sLayers[l].mHierarchie[i].mGridX << " ";
+                levelProps << sLayers[l].mHierarchie[i].mGridY << "\n";
             }
             
-            levelprops << "\n";
+            levelProps << "\n";
         }
 
-        std::cout << "Niveau " << mfileName << ".txt sauvegarder avec succes\n";
+        std::cout << "Niveau " << sFileName << ".txt sauvegarder avec succes\n";
         file.close();
-        levelprops.close();
+        levelProps.close();
     }
 
     void Level::LoadLevel()
     {
-        mIsLoading = true;
-        std::cout << "\nChargement du niveau " << mfileName << ".txt\n";
+        sIsLoading = true;
+        std::cout << "\nChargement du niveau " << sFileName << ".txt\n";
 
         // Fichier de niveau
-        std::string completName = msavePath + mfileName + mextension;
+        std::string completName = SAVE_PATH + sFileName + EXTENSION;
         std::ifstream file(completName);
         if(!file.is_open())
         {
             std::cerr << "Impossible d'ouvrir le fichier. Veuillez verifier s'il exixte\n" << std::endl;
-            mIsLoading = false;
+            sIsLoading = false;
             return;
         }
 
@@ -376,28 +407,28 @@ namespace minieditor
         if(token != "MiniEditorFile")
         {
             std::cerr << "Fichier inconnu\n";
-            mIsLoading = false;
+            sIsLoading = false;
             return;
         }
         
         // Recuperation des infos
-        file >> token >> mGridWidth;
-        file >> token >> mGridHeight;
+        file >> token >> sGridWidth;
+        file >> token >> sGridHeight;
 
-        file >> token >> mtileSize;
-        file >> token >> mLayerCount;
+        file >> token >> sTileSize;
+        file >> token >> sLayerCount;
 
-        mLayers.resize(mLayerCount);
+        sLayers.resize(sLayerCount);
 
-        for (int l = 0; l < mLayerCount; l++)
+        for (int l = 0; l < sLayerCount; l++)
         {
-            file >> token >> mLayers[l].name;
+            file >> token >> sLayers[l].mName;
 
-            for (int y = 0; y < mGridHeight; y++)
+            for (int y = 0; y < sGridHeight; y++)
             {
-                for (int x = 0; x < mGridWidth; x++)
+                for (int x = 0; x < sGridWidth; x++)
                 {
-                    file >> mLayers[l].Grid[y][x];
+                    file >> sLayers[l].mGrid[y][x];
                 }
             }
         }
@@ -405,62 +436,62 @@ namespace minieditor
         file.close();
 
         // Fichier de proprites de niveau
-        completName = msavePath + mfileName + "Hierarchie" + mextension;
-        std::ifstream levelprops(completName);
-        if(!levelprops.is_open())
+        completName = SAVE_PATH + sFileName + "Hierarchie" + EXTENSION;
+        std::ifstream levelProps(completName);
+        if(!levelProps.is_open())
         {
             std::cerr << "Impossible d'ouvrir le fichier de propriete. Veuillez verifier s'il exixte\n" << std::endl;
-            mIsLoading = false;
+            sIsLoading = false;
             return;
         }
 
         std::string getter;
 
         // Validation du fichier
-        levelprops >> getter;
+        levelProps >> getter;
         if(getter != "MiniEditorFile")
         {
             std::cerr << "Fichier de proprieter inconnu\n";
-            mIsLoading = false;
+            sIsLoading = false;
             return;
         }
 
         // Recuperation des infos
-        for (int l = 0; l < mLayerCount; l++)
+        for (int l = 0; l < sLayerCount; l++)
         {
             int _size;
-            levelprops >> getter >> _size;
-            mLayers[l].hierarchie.resize(_size);
+            levelProps >> getter >> _size;
+            sLayers[l].mHierarchie.resize(_size);
 
-            for (size_t i = 0; i < mLayers[l].hierarchie.size(); i++)
+            for (size_t i = 0; i < sLayers[l].mHierarchie.size(); i++)
             {
-                levelprops >> mLayers[l].hierarchie[i].mID;
-                levelprops >> mLayers[l].hierarchie[i].mName;
-                levelprops >> mLayers[l].hierarchie[i].mgridX;
-                levelprops >> mLayers[l].hierarchie[i].mgridY;
-                levelprops >> mLayers[l].hierarchie[i].size;
+                levelProps >> sLayers[l].mHierarchie[i].mID;
+                levelProps >> sLayers[l].mHierarchie[i].mName;
+                levelProps >> sLayers[l].mHierarchie[i].mGridX;
+                levelProps >> sLayers[l].mHierarchie[i].mGridY;
             }
             
         }
 
-        levelprops.close();
-        std::cout << "Niveau " << mfileName << ".txt Charger avec succes\n";
-        mIsLoading = false;
+        levelProps.close();
+        std::cout << "Niveau " << sFileName << ".txt Charger avec succes\n";
+        sIsLoading = false;
     }
 
     void Level::ResetCamera()
     {
         std::cout << "Camera remit a l'origin\n";
-        mcamera.x = 0.0f;
-        mcamera.y = 0.0f;
+        mCamera.x = 0.0f;
+        mCamera.y = 0.0f;
+        mCamera.mZoom = 1.0f;
     }
 
     bool Level::IDIsUsed(int tileID)
     {
         // Verifier si un id est deja utiliser
-        for(const auto& _id : musedIDs)
+        for(const auto& id : mUsedIDs)
         {
-            if(tileID == _id)
+            if(tileID == id)
             {
                 return true;
             }
@@ -475,7 +506,7 @@ namespace minieditor
         // Les noms de fichiers
         std::vector<TileForTS> tileInfo;
 
-        std::string completName = mtileSetPath + "Tileset" + mextension;
+        std::string completName = TILE_SET_PATH + "Tileset" + EXTENSION;
         std::ofstream file(completName);
 
         // Ajout du header personaliser
@@ -491,17 +522,17 @@ namespace minieditor
             if(path.extension() != ".png")
                 continue;
 
-            std::string _fileName = path.stem().string();
-            int _id = ExtractLeadingNumber(_fileName);
+            std::string fileName = path.stem().string();
+            int id = ExtractLeadingNumber(fileName);
 
-            if(_id < 0)
+            if(id < 0)
                 continue;
             
-            TileForTS _tileHelp;
-            _tileHelp.mName = _fileName;
-            _tileHelp.mID   = _id;
+            TileForTS tileHelp;
+            tileHelp.mName = fileName;
+            tileHelp.mID   = id;
 
-            tileInfo.push_back(_tileHelp);
+            tileInfo.push_back(tileHelp);
         }
         
         // Classe les noms par ordre alphabetique pour eviter les erreur dans les chargement de texture
@@ -530,27 +561,27 @@ namespace minieditor
     void Level::DestroyTextures()
     {
         // Detruire les texture a la fin du progamme
-        for(auto& tile : mtileSet)
+        for(auto& tile : sTileSet)
         {
-            SDL_DestroyTexture(tile.texture);
+            SDL_DestroyTexture(tile.mTexture);
         }
 
         // Destruction des texture de lumiere
-        for(auto& light : mLights)
+        for(auto& light : sLights)
         {
             SDL_DestroyTexture(light.mTexture);
         }
         
-        SDL_DestroyTexture(mlightMap);
+        SDL_DestroyTexture(mLightMap);
     }
 
     int Level::FindID(int tileID)
     {
         // Cherchez un index de tableau correspondant a un id de tuile dans mtileSet
         size_t i;
-        for(i = 0; i < mtileSet.size(); i++)
+        for(i = 0; i < sTileSet.size(); i++)
         {
-            if(mtileSet[i].tileID == tileID)
+            if(sTileSet[i].mID == tileID)
             {
                 break;
             }
@@ -560,16 +591,16 @@ namespace minieditor
 
     int Level::FindIDInScene(int layerID, int x, int y)
     {
-        if(mLayers[layerID].Grid[y][x] == -1)
+        if(sLayers[layerID].mGrid[y][x] == -1)
         {
             return 0;
         }
         
         // Cherchez un index de tableau correspondant a un id de tuile dans la scene (hierarchie de la couche courante)
         size_t i;
-        for (i = 0; i < mLayers[layerID].hierarchie.size(); i++)
+        for (i = 0; i < sLayers[layerID].mHierarchie.size(); i++)
         {
-            if(mLayers[layerID].hierarchie[i].mgridX == x && mLayers[layerID].hierarchie[i].mgridY == y)
+            if(sLayers[layerID].mHierarchie[i].mGridX == x && sLayers[layerID].mHierarchie[i].mGridY == y)
             {
                 break;
             }
@@ -578,85 +609,119 @@ namespace minieditor
         return i;
     }
 
-    void Level::RenderBackGroundGrid(SDL_Renderer* mRenderer)
+    void Level::RenderBackGroundGrid(SDL_Renderer* renderer)
     {
         SDL_FRect limits;
-        limits.x = 0.0f - mcamera.x;
-        limits.y = 0.0f - mcamera.y;
-        limits.h = mGridHeight * mtileSize;
-        limits.w = mGridWidth  * mtileSize;
+        limits.x = (0.0f - mCamera.x) * mCamera.mZoom;
+        limits.y = (0.0f - mCamera.y) * mCamera.mZoom;
+        limits.h = sGridHeight * sTileSize * mCamera.mZoom;
+        limits.w = sGridWidth  * sTileSize * mCamera.mZoom;
 
-        SDL_SetRenderDrawColor(mRenderer, 50, 50, 50, 255);
-        SDL_RenderRect(mRenderer, &limits);
+        SDL_SetRenderDrawColor(renderer, 50, 50, 50, 255);
+        SDL_RenderRect(renderer, &limits);
     }
 
     void Level::ResetSelectionStatus()
     {
-        for(auto& tile : mLayers[mcurrentLayerID].hierarchie)
+        for(auto& tile : sLayers[sCurrentLayerID].mHierarchie)
         {
             tile.mIsSelected = false;
         }
     }
 
-    void Level::DrawSelectionSquare(SDL_Renderer* mRenderer, int x, int y, float size)
+    void Level::DrawSelectionSquare(SDL_Renderer* renderer, int x, int y, float size)
     {
         x = x - 1.0f;
         y = y - 1.0f;
         size = size + 1.0f;
         
         SDL_FRect selcetionSquare = {static_cast<float>(x), static_cast<float>(y), size, size};
-        SDL_SetRenderDrawColor(mRenderer, 255, 255, 0, 255);
-        SDL_RenderRect(mRenderer, &selcetionSquare);
+        SDL_SetRenderDrawColor(renderer, 255, 255, 0, 255);
+        SDL_RenderRect(renderer, &selcetionSquare);
     }
 
-    void Level::RenderLight(SDL_Renderer* mRenderer)
+    void Level::RenderLight(SDL_Renderer* renderer)
     {
-        SDL_SetRenderTarget(mRenderer, mlightMap);
+        SDL_SetRenderTarget(renderer, mLightMap);
 
-        SDL_SetRenderDrawBlendMode(mRenderer, SDL_BLENDMODE_BLEND);
-        SDL_SetRenderDrawColor(mRenderer, mambient, mambient, mambient, mglobalLightIntensity);
-        SDL_RenderFillRect(mRenderer, NULL);
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+        SDL_SetRenderDrawColor(renderer, sAmbient, sAmbient, sAmbient, sGlobalLightIntensity);
+        SDL_RenderFillRect(renderer, NULL);
 
-        SDL_RenderTexture(mRenderer, mLights[0].mTexture, nullptr, &mLights[0].props);
-
-        SDL_SetRenderTarget(mRenderer, nullptr);
-        SDL_RenderTexture(mRenderer, mlightMap, nullptr, nullptr);
-
-        SDL_SetTextureColorMod(mLights[0].mTexture, mLights[0].colorMod.r, mLights[0].colorMod.g, mLights[0].colorMod.b);
-        SDL_RenderTexture(mRenderer, mLights[0].mTexture, nullptr, &mLights[0].props);
-    }
-
-    bool Level::InitLight(SDL_Renderer* mRenderer)
-    {
-        Light light;
-
-        light.mTexture = IMG_LoadTexture(mRenderer, "build/Assets/Lights/light.png");
-        if(!light.mTexture)
+        for(auto& light : sLights)
         {
-            std::cout << "Impossible de charger la texture de lumiere !" << std::endl;
-            return false;
+            light.mProps.x = (light.mFixedPosX - mCamera.x) * mCamera.mZoom;
+            light.mProps.y = (light.mFixedPosY - mCamera.y) * mCamera.mZoom;
+            light.mProps.w = sLightSize * mCamera.mZoom;
+            light.mProps.h = sLightSize * mCamera.mZoom;
+
+            if(light.mActivate)
+            {
+                SDL_RenderTexture(renderer, light.mTexture, nullptr, &light.mProps);
+            }
         }
 
-        SDL_SetTextureBlendMode(light.mTexture, SDL_BLENDMODE_ADD);
-        light.colorMod.r = 155;
-        light.colorMod.b = 155;
-        light.colorMod.g = 155;
-        light.colorMod.a = 255;
+        SDL_SetRenderTarget(renderer, nullptr);
+        SDL_RenderTexture(renderer, mLightMap, nullptr, nullptr);
 
-        light.props = SDL_FRect{512.0f, 496.0f, 256.0f, 256.0f};
+        for(auto& light : sLights)
+        {
+            if(light.mIsRayonnant && light.mActivate)
+            {
+                SDL_SetTextureColorMod(light.mTexture, light.mColorMod.r, light.mColorMod.g, light.mColorMod.b);
+                SDL_RenderTexture(renderer, light.mTexture, nullptr, &light.mProps);
+            }
+        }
+    }
 
-        mLights.push_back(light);
-
-        mlightMap = SDL_CreateTexture(
-            mRenderer,
+    bool Level::InitLight(SDL_Renderer* renderer)
+    {
+        mLightMap = SDL_CreateTexture(
+            renderer,
             SDL_PIXELFORMAT_RGBA8888,
             SDL_TEXTUREACCESS_TARGET,
             1024, 992
         );
 
-        SDL_SetTextureBlendMode(mlightMap, SDL_BLENDMODE_MOD);
+        if(!mLightMap)
+        {
+            std::cout << "Error: lightmap non initielisee." << std::endl;
+            return false;
+        }
+
+        SDL_SetTextureBlendMode(mLightMap, SDL_BLENDMODE_MOD);
 
         return true;
+    }
+
+    void Level::AddLight(SDL_Renderer* renderer)
+    {
+        Light light;
+
+        light.mTexture = IMG_LoadTexture(renderer, "build/Assets/Lights/light.png");
+        if(!light.mTexture)
+        {
+            std::cout << "Impossible de charger la texture de lumiere !" << std::endl;
+            return;
+        }
+
+        SDL_SetTextureBlendMode(light.mTexture, SDL_BLENDMODE_ADD);
+        light.mColorMod.r = 155;
+        light.mColorMod.b = 155;
+        light.mColorMod.g = 155;
+        light.mColorMod.a = 255;
+
+        light.mProps = SDL_FRect{
+            512.0f, 
+            496.0f, 
+            sLightSize, 
+            sLightSize
+        };
+
+        light.mFixedPosX = light.mProps.x;
+        light.mFixedPosY = light.mProps.y;
+
+        sLights.push_back(light);
     }
 }
 

@@ -7,7 +7,10 @@
 #include <cctype>
 #include <vector>
 #include <filesystem>
+#include "nlohmann/json.hpp"
 #include <fstream>
+
+using json = nlohmann::json;
 
 namespace minieditor
 {
@@ -27,8 +30,12 @@ namespace minieditor
     {
         std::string mName  = "Light";
         SDL_Texture* mTexture;
-        SDL_FRect props;
-        SDL_Color colorMod;
+        SDL_FRect mProps;
+        int mFixedPosX;
+        int mFixedPosY;
+        SDL_Color mColorMod;
+        bool mIsRayonnant = true;
+        bool mActivate = true;
     };
 
     /**
@@ -36,20 +43,17 @@ namespace minieditor
      */
     struct TileInScene : TileForTS
     {
-        int mgridX;
-        int mgridY;
-        float size;
+        int mGridX;
+        int mGridY;
         bool mIsSelected = false;
     };
 
     /**
      * @brief structure pour les tiles dans le tile piker 
      */
-    struct Tile
+    struct Tile : TileForTS
     {
-        int tileID = 0;
-        std::string name;
-        SDL_Texture* texture;          
+        SDL_Texture* mTexture;          
     };
 
     /**
@@ -57,9 +61,23 @@ namespace minieditor
      */
     struct Layer
     {
-        std::string name;
-        std::vector<std::vector<int>> Grid;
-        std::vector<TileInScene> hierarchie;
+        std::string mName;
+        std::vector<std::vector<int>> mGrid;
+        std::vector<TileInScene> mHierarchie;
+    };
+
+    /**
+     * @brief gestion camera et zoom
+     */
+    struct Camera
+    {
+        float x = 0.0f;
+        float y = 0.0f;
+        float mZoom = 1.0f;
+        const float mZoomSpeed = 0.1f;
+        const float mMinZoom = 0.5f;
+        const float mMaxZoom = 2.0f;
+
     };
 
     /**
@@ -68,40 +86,41 @@ namespace minieditor
     class Level
     {
         public:
-            static std::vector<Tile> mtileSet;
-            static int mcurrentTileID;
-            static int mcurrentLayerID;
+            static std::vector<Tile> sTileSet;
+            static int sCurrentTileID;
+            static int sCurrentLayerID;
             
-            static std::vector<Layer> mLayers;
-            static std::vector<Light> mLights;
-            std::vector<int> musedIDs;
-            static std::string mfileName;
-            static const std::string msavePath;
-            static const std::string mtileSetPath;
-            static const std::string mextension; 
+            static std::vector<Layer> sLayers;
+            static std::vector<Light> sLights;
+            std::vector<int> mUsedIDs;
+            static std::string sFileName;
+            static const std::string SAVE_PATH;
+            static const std::string TILE_SET_PATH;
+            static const std::string EXTENSION; 
 
-            static bool mmodeSelection;
-            static bool mIsLoading;
-            static bool mSingleLayerRendering;
+            static bool sModeSelection;
+            static bool sIsLoading;
+            static bool sSingleLayerRendering;
+            static bool sCameraIsMoving;
             
 
-            static int mGridHeight;
-            static int mGridWidth;
-            static int mtileSize;
-            static int mLayerCount;
-            static int mglobalLightIntensity;
+            static int sGridHeight;
+            static int sGridWidth;
+            static int sTileSize;
+            static float sLightSize;
+            static int sLayerCount;
+            static int sGlobalLightIntensity;
             
             SDL_Event event;
-            SDL_FRect mcamera = {0.0f, 0.0f, 1024.0f, 992.0f};
-            SDL_Texture* mlightMap;
+            Camera mCamera;
+            SDL_Texture* mLightMap;
 
-            std::string mtilesPath = "build/Assets/Tiles/";
+            std::string mTilesPath = "build/Assets/Tiles/";
 
             int mMouseX;
             int mMouseY; 
-            bool lightInitialized = false;
-            static int mindex;  
-            static int mambient;         
+            static int sIndex;  
+            static int sAmbient;         
 
             bool mPlace = false;
 
@@ -112,16 +131,21 @@ namespace minieditor
             Level();
 
             /**
-             * @brief rendre le niveau a l'ecran
-             * @param mRenderer rendu SDL
+             * @brief gere le zoom
              */
-            void Render(SDL_Renderer* mRenderer);
+            void HandleZoom(Camera& camera, bool zoom);
+
+            /**
+             * @brief rendre le niveau a l'ecran
+             * @param renderer rendu SDL
+             */
+            void Render(SDL_Renderer* renderer);
 
             /**
              * @brief rendre la grille d'editeur et les limites du niveau
-             * @param mRenderer rendu SDL
+             * @param renderer rendu SDL
              */
-            void RenderBackGroundGrid(SDL_Renderer* mRenderer);
+            void RenderBackGroundGrid(SDL_Renderer* renderer);
 
             /**
              * @brief mettre a jour l'editeur
@@ -153,9 +177,9 @@ namespace minieditor
 
             /**
              * @brief initialisation de la liste de tiles
-             * @param mRenderer Rendu SDL
+             * @param renderer Rendu SDL
              */
-            void InitTiles(SDL_Renderer* mRenderer);
+            void InitTiles(SDL_Renderer* renderer);
 
             /**
              * @brief sauvegarder un niveau dans un format texte (.txt)
@@ -211,17 +235,22 @@ namespace minieditor
             /**
              * @brief dessiner un carre au tour de la tile selectionnee
              */
-            void DrawSelectionSquare(SDL_Renderer* mRenderer, int x, int y, float size);
+            void DrawSelectionSquare(SDL_Renderer* renderer, int x, int y, float size);
 
             /**
              * @brief Initialisation de lumieres
              */
-            bool InitLight(SDL_Renderer* mRenderer);
+            bool InitLight(SDL_Renderer* renderer);
 
             /**
              * @brief rendu de lumieres 
              */
-            void RenderLight(SDL_Renderer* mRenderer);
+            void RenderLight(SDL_Renderer* renderer);
+
+            /**
+             * Ajouter une lumiere
+             */
+            static void AddLight(SDL_Renderer* renderer);
     };
 } // namespace minieditor
 
