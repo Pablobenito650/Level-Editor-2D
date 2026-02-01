@@ -43,7 +43,7 @@ namespace minieditor
                 {
                     if(ImGui::MenuItem("Light"))
                     {
-                        Level::AddLight(renderer);
+                        Level::AddLight();
                     }
 
                     ImGui::EndMenu();
@@ -125,7 +125,7 @@ namespace minieditor
         {
             ImGui::Begin("Inspector");
             
-            DrawSelectedTile();
+            Inspector();
 
             ImGui::End();
         }
@@ -133,7 +133,7 @@ namespace minieditor
         {
             ImGui::Begin("Local Lighning");
 
-            DrawLightSettings();
+            LightHierarchie();
 
             ImGui::End();
         }
@@ -143,8 +143,11 @@ namespace minieditor
         ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), renderer);
     }
 
-    void GUI::DrawSelectedTile()
+    void GUI::Inspector()
     {
+        ImGui::Separator();
+        ImGui::Text("Tile Settings");
+
         // Afficher la tile selectionner dans la scene
         if(Level::sModeSelection && Level::sLayers[Level::sCurrentLayerID].mHierarchie.size() > 0)
         {
@@ -165,21 +168,14 @@ namespace minieditor
                 Level::RemoveTile(x, y);
             }
 
-            ImGui::Separator();
-
             // Afficher l'image definissant la tuile
             ImTextureID tex = (ImTextureID)Level::sTileSet[index].mTexture;
             ImGui::Image(tex, ImVec2(4*TILE_SIZE, 4*TILE_SIZE));
-
-            ImGui::Separator();
 
             // Afficher son nom dans la scene (modifiable) et l'id de l'image (texture) dont il decoule
             ImGui::InputText("Name", &selectedTile.mName);
             ImGui::Text("ID %d", id);
 
-            ImGui::Separator();
-
-            ImGui::Text("Transform");
             ImGui::Text("Position X %d  Y %d", x * Level::sTileSize, y * Level::sTileSize);
         }
 
@@ -196,46 +192,74 @@ namespace minieditor
             std::string texName = Level::sTileSet[index].mName;
             int id = Level::sTileSet[index].mID;
 
-            ImGui::Separator();
-
             ImGui::Text("%s", texName.c_str());
             ImGui::Text("ID %d", id);
         }
-    }
 
-    void GUI::DrawLightSettings()
-    {
+        ImGui::Separator();
+
+        ImGui::Separator();
+
+        ImGui::Text("Light Settings");
+
         if(Level::sLights.size() > 0)
         {
-            ImGui::Checkbox("A", &Level::sLights[0].mActivate);
-            ImGui::SameLine();
-            ImGui::InputText("Name", &Level::sLights[0].mName);
-
-            ImGui::Separator();
-
-            ImGui::Text("Couleur et intensite");
-
-            int x = Level::sLights[0].mColorMod.r;
-            int y = Level::sLights[0].mColorMod.g;
-            int z = Level::sLights[0].mColorMod.b;
-
-            ImGui::Checkbox("Rayonnant", &Level::sLights[0].mIsRayonnant);
-            ImGui::SliderInt("R ", &x, 0, 255);
-            ImGui::SliderInt("G ", &y, 0, 255);
-            ImGui::SliderInt("B ", &z, 0, 255);
-
-            Level::sLights[0].mColorMod.r = x;
-            Level::sLights[0].mColorMod.g = y;
-            Level::sLights[0].mColorMod.b = z;
-
-            ImGui::Separator();
-
-            const int limitX = Level::sGridWidth * Level::sTileSize - Level::sLightSize;
-            const int limitY = Level::sGridHeight * Level::sTileSize - Level::sLightSize;
-        
-            ImGui::Text("Position" );
-            ImGui::SliderInt("X ", &Level::sLights[0].mFixedPosX, 0, limitX);
-            ImGui::SliderInt("Y ", &Level::sLights[0].mFixedPosY, 0, limitY);
+            LightingSettings();
         }
+    }
+
+    void GUI::LightHierarchie()
+    {
+        if(Level::sLights.size() == 0)
+        {
+            return;
+        }
+
+        for(size_t i = 0; i < Level::sLights.size(); i++)
+        {
+            ImGui::Separator();
+
+            if(ImGui::Button(Level::sLights[i].mName.c_str()))
+            {
+                mIndex = i;
+            }
+
+            ImGui::Separator();
+        } 
+    }
+
+    void GUI::LightingSettings()
+    {
+        if(ImGui::Button("Supprimer"))
+        {
+            Level::RemoveLight(mIndex);
+            mIndex = 0;
+        }
+
+        ImGui::Checkbox("A", &Level::sLights[mIndex].mActivate);
+        ImGui::SameLine();
+        ImGui::InputText("Name", &Level::sLights[mIndex].mName);
+
+        ImGui::Text("Couleur et intensite");
+
+        int x = Level::sLights[mIndex].mColorMod.r;
+        int y = Level::sLights[mIndex].mColorMod.g;
+        int z = Level::sLights[mIndex].mColorMod.b;
+
+        ImGui::Checkbox("Rayonnant", &Level::sLights[mIndex].mIsRayonnant);
+        ImGui::SliderInt("R ", &x, 0, 255);
+        ImGui::SliderInt("G ", &y, 0, 255);
+        ImGui::SliderInt("B ", &z, 0, 255);
+
+        Level::sLights[mIndex].mColorMod.r = x;
+        Level::sLights[mIndex].mColorMod.g = y;
+        Level::sLights[mIndex].mColorMod.b = z;
+
+        const int limitX = Level::sGridWidth * Level::sTileSize - Level::sLightSize;
+        const int limitY = Level::sGridHeight * Level::sTileSize - Level::sLightSize;
+    
+        ImGui::Text("Position" );
+        ImGui::SliderInt("X ", &Level::sLights[mIndex].mFixedPosX, 0, limitX);
+        ImGui::SliderInt("Y ", &Level::sLights[mIndex].mFixedPosY, 0, limitY);  
     }
 }

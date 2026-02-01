@@ -115,12 +115,15 @@ namespace minieditor
             Camera mCamera;
             SDL_Texture* mLightMap;
 
+            static SDL_Texture* mLightTexture;
+
             std::string mTilesPath = "build/Assets/Tiles/";
 
             int mMouseX;
             int mMouseY; 
             static int sIndex;  
-            static int sAmbient;         
+            static int sAmbient;
+            static int sNextID;         
 
             bool mPlace = false;
 
@@ -248,9 +251,14 @@ namespace minieditor
             void RenderLight(SDL_Renderer* renderer);
 
             /**
-             * Ajouter une lumiere
+             * @brief Ajouter une lumiere
              */
-            static void AddLight(SDL_Renderer* renderer);
+            static void AddLight();
+
+            /**
+             * @brief supprimer une lumiere
+             */
+            static void RemoveLight(int index);
     };
 } // namespace minieditor
 

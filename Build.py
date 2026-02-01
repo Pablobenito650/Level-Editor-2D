@@ -130,7 +130,6 @@ class Builder:
             f"-I{self.imgui_dir}",
             f"-I{self.imgui_dir}/backends",
             f"-I{self.imgui_dir}/misc/cpp",
-            f"-I{self.json_dir}/single_include"
         ]
 
         return includes

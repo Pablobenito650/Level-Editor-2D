@@ -25,7 +25,10 @@ namespace minieditor
     float Level::sLightSize = 256.0f;
     int Level::sLayerCount = 3;
     int Level::sIndex = 0;
+    int Level::sNextID = 0;
     int Level::sGlobalLightIntensity = 100;
+
+    SDL_Texture* Level::mLightTexture = nullptr;
 
     void Level::TilePlacement()
     {
@@ -203,9 +206,6 @@ namespace minieditor
         // Gestion du soom 
         if(event.type == SDL_EVENT_MOUSE_WHEEL)
         {
-            int mouseX = event.wheel.x;
-            int mouseY = event.wheel.y;
-
             bool zoom = (event.wheel.y > 0);
 
             HandleZoom(mCamera, zoom);
@@ -343,7 +343,8 @@ namespace minieditor
         file << "WIDTH      " << sGridWidth << "\n";
         file << "HEIGHT     " << sGridHeight << "\n";
 
-        file << "TILESIZE   " << sTileSize << "\n";
+        file << "GLOBALINTENSITY      " << sGlobalLightIntensity << "\n";
+        file << "AMBIENT     " << sAmbient << "\n";
 
         file << "LAYERCOUNT " << sLayerCount << "\n\n";
 
@@ -378,6 +379,21 @@ namespace minieditor
             }
             
             levelProps << "\n";
+        }
+
+        levelProps << "\n";
+        levelProps << "LIGHTSIZE " << sLights.size() << "\n";
+
+        for(const auto& light : sLights)
+        {
+            levelProps << light.mName << " ";
+            levelProps << light.mProps.x << " ";
+            levelProps << light.mProps.y << " ";
+            levelProps << light.mFixedPosX << " ";
+            levelProps << light.mFixedPosY << " ";
+            levelProps << (int)(light.mColorMod.r) << " ";
+            levelProps << (int)(light.mColorMod.g) << " ";
+            levelProps << (int)(light.mColorMod.b) << "\n";
         }
 
         std::cout << "Niveau " << sFileName << ".txt sauvegarder avec succes\n";
@@ -415,7 +431,9 @@ namespace minieditor
         file >> token >> sGridWidth;
         file >> token >> sGridHeight;
 
-        file >> token >> sTileSize;
+        file >> token >> sGlobalLightIntensity;
+        file >> token >> sAmbient;
+        
         file >> token >> sLayerCount;
 
         sLayers.resize(sLayerCount);
@@ -456,12 +474,13 @@ namespace minieditor
             return;
         }
 
+        int size;
+
         // Recuperation des infos
         for (int l = 0; l < sLayerCount; l++)
         {
-            int _size;
-            levelProps >> getter >> _size;
-            sLayers[l].mHierarchie.resize(_size);
+            levelProps >> getter >> size;
+            sLayers[l].mHierarchie.resize(size);
 
             for (size_t i = 0; i < sLayers[l].mHierarchie.size(); i++)
             {
@@ -470,7 +489,37 @@ namespace minieditor
                 levelProps >> sLayers[l].mHierarchie[i].mGridX;
                 levelProps >> sLayers[l].mHierarchie[i].mGridY;
             }
-            
+        }
+
+        levelProps >> getter >> size;
+        sLights.resize(size);
+
+        for(size_t i = 0; i < sLights.size(); i++)
+        {
+            sLights[i].mTexture = mLightTexture;
+            if(!sLights[i].mTexture)
+            {
+                std::cout << "Impossible de charger la texture de lumiere !" << std::endl;
+                continue;
+            }
+
+            int color[3];
+            levelProps >> sLights[i].mName;
+            levelProps >> sLights[i].mProps.x;
+            levelProps >> sLights[i].mProps.y;
+            levelProps >> sLights[i].mFixedPosX;
+            levelProps >> sLights[i].mFixedPosY;
+            levelProps >> color[0];
+            levelProps >> color[1];
+            levelProps >> color[2];
+
+            sLights[i].mColorMod.r = (Uint8)(color[0]);
+            sLights[i].mColorMod.g = (Uint8)(color[1]);
+            sLights[i].mColorMod.b = (Uint8)(color[2]);
+            sLights[i].mColorMod.a = 255;
+
+            sLights[i].mProps.w = 256.0f;
+            sLights[i].mProps.h = 256.0f;
         }
 
         levelProps.close();
@@ -573,6 +622,7 @@ namespace minieditor
         }
         
         SDL_DestroyTexture(mLightMap);
+        SDL_DestroyTexture(mLightTexture);
     }
 
     int Level::FindID(int tileID)
@@ -691,14 +741,21 @@ namespace minieditor
 
         SDL_SetTextureBlendMode(mLightMap, SDL_BLENDMODE_MOD);
 
+        mLightTexture = IMG_LoadTexture(renderer, "build/Assets/Lights/light.png");
+        if(!mLightTexture)
+        {
+            std::cout << "Impossible de charger la texture de lumiere !" << std::endl;
+            return false;
+        }
+
         return true;
     }
 
-    void Level::AddLight(SDL_Renderer* renderer)
+    void Level::AddLight()
     {
         Light light;
 
-        light.mTexture = IMG_LoadTexture(renderer, "build/Assets/Lights/light.png");
+        light.mTexture = mLightTexture;
         if(!light.mTexture)
         {
             std::cout << "Impossible de charger la texture de lumiere !" << std::endl;
@@ -706,6 +763,7 @@ namespace minieditor
         }
 
         SDL_SetTextureBlendMode(light.mTexture, SDL_BLENDMODE_ADD);
+        
         light.mColorMod.r = 155;
         light.mColorMod.b = 155;
         light.mColorMod.g = 155;
@@ -721,7 +779,17 @@ namespace minieditor
         light.mFixedPosX = light.mProps.x;
         light.mFixedPosY = light.mProps.y;
 
+        std::string name = "Light";
+        light.mName = name + std::to_string(sNextID);
+
+        sNextID++;
+
         sLights.push_back(light);
+    }
+
+    void Level::RemoveLight(int index)
+    {
+        sLights.erase(sLights.begin() + index);
     }
 }
 

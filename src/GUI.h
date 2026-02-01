@@ -19,12 +19,14 @@ namespace minieditor
             const float TILE_SIZE = 32.0f;
             const float PADDING = 4.0f;
             const int COLUMNS = 4;
+            int mIndex = 0;
 
         public:
             void GUISet(SDL_Window* window, SDL_Renderer* renderer);
             void TestGUI(SDL_Renderer* renderer);
-            void DrawSelectedTile();
-            void DrawLightSettings();
+            void Inspector();
+            void LightHierarchie();
+            void LightingSettings();
     };
 }
 
