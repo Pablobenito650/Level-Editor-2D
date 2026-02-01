@@ -9,7 +9,7 @@ namespace minieditor
     int Level::sCurrentLayerID = 0;
     int Level::sAmbient = 255;
     std::vector<Layer> Level::sLayers;
-    std::string Level::sFileName = "Level";
+    std::string Level::sFileName = "Untitled";
     const std::string Level::SAVE_PATH = "build/Levels/";
     const std::string Level::TILE_SET_PATH = "build/Assets/";
     const std::string Level::EXTENSION = ".txt";

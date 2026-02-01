@@ -51,8 +51,12 @@ namespace minieditor
 
                 ImGui::EndMainMenuBar();
             }
+
+            ImGui::SetNextWindowPos(ImVec2(0, 20));
+            ImGui::SetNextWindowSize(ImVec2(250, 340));
+
             // Creation de la fenetre Dear ImGUI
-            ImGui::Begin("Project");
+            ImGui::Begin("Project", nullptr, ImGuiWindowFlags_NoMove);
 
             // Gestion du backGround
             ImGui::ColorEdit3("BackGround", (float*)&mClearColor);
@@ -123,7 +127,10 @@ namespace minieditor
         }
 
         {
-            ImGui::Begin("Inspector");
+            ImGui::SetNextWindowPos(ImVec2(874, 20));
+            ImGui::SetNextWindowSize(ImVec2(150, 340));
+
+            ImGui::Begin("Inspector", nullptr, ImGuiWindowFlags_NoMove);
             
             Inspector();
 
@@ -131,7 +138,10 @@ namespace minieditor
         }
 
         {
-            ImGui::Begin("Local Lighning");
+            ImGui::SetNextWindowPos(ImVec2(0, 652));
+            ImGui::SetNextWindowSize(ImVec2(250, 340));
+
+            ImGui::Begin("Local Lighning", nullptr, ImGuiWindowFlags_NoMove);
 
             LightHierarchie();
 

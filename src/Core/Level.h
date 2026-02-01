@@ -7,10 +7,7 @@
 #include <cctype>
 #include <vector>
 #include <filesystem>
-#include "nlohmann/json.hpp"
 #include <fstream>
-
-using json = nlohmann::json;
 
 namespace minieditor
 {
