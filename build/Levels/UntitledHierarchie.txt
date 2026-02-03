@@ -1,8 +1,8 @@
 MiniEditorFile
 
 HIERARCHIESIZE 2
-0 Tile 13 13
-0 Tile 14 13
+3 Tile 13 12 416 384 0 
+18 Tile 14 12 448 384 1 4
 
 HIERARCHIESIZE 0
 

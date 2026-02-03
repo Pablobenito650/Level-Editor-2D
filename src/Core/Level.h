@@ -8,6 +8,9 @@
 #include <vector>
 #include <filesystem>
 #include <fstream>
+#include <chrono>
+
+#include "Components.h"
 
 namespace minieditor
 {
@@ -42,7 +45,11 @@ namespace minieditor
     {
         int mGridX;
         int mGridY;
+        float mPosX;
+        float mPosY;
+        Animation mAnim;
         bool mIsSelected = false;
+        bool mIsAnimating = false;
     };
 
     /**
@@ -99,6 +106,7 @@ namespace minieditor
             static bool sIsLoading;
             static bool sSingleLayerRendering;
             static bool sCameraIsMoving;
+            static bool sIsStartingNew;
             
 
             static int sGridHeight;
@@ -117,7 +125,7 @@ namespace minieditor
             std::string mTilesPath = "build/Assets/Tiles/";
 
             int mMouseX;
-            int mMouseY; 
+            int mMouseY;
             static int sIndex;  
             static int sAmbient;
             static int sNextID;         
@@ -150,7 +158,7 @@ namespace minieditor
             /**
              * @brief mettre a jour l'editeur
              */
-            void Update();
+            void Update(float deltatime);
 
             /**
              * @brief placement une tile 
@@ -256,6 +264,22 @@ namespace minieditor
              * @brief supprimer une lumiere
              */
             static void RemoveLight(int index);
+
+            /**
+             * @brief demarer un nouveau niveau
+             */
+            static void StartNewLevel();
+
+            /**
+             * @brief Gestion de l'animation de chaque tile animee
+             */
+            void UpdateAnimations(float deltatime);
+
+            /**
+             * @brief Animer une tile
+             */
+            void Animate(float deltatime, TileInScene& tile);
+
     };
 } // namespace minieditor
 

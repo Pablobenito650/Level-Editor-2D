@@ -1,4 +1,4 @@
-# Level Editor 2D * editeur de nieau pour jeu 2D
+# Level Editor 2D * editeur de niveau pour jeu 2D
 
 ![C++]
 ![Python]
@@ -6,15 +6,20 @@
 ![SDL3_image]
 ![ImGUI]
 
-Level Editor 2D est une application qui permet de creer des zone de jeux en 2D en se basant sur le systeme de grille et de tilemap.
+Level Editor 2D est un outil qui permet de créer des zones de jeux. Les editeurs de niveau existe pour tout type de jeux vidéos mais ici nous nous intéressons aux jeux 2D. Notre tache ici est donc créer un outil qui va permettre a un développeur de jeux de concevoir ses niveaux de façon simple et rapide.
+
+Les Editeurs de Niveaux sont des outils qui se révèlent indispensable pour les grandes entreprises et aussi les développeurs indépendants et cela pour plusieurs raisons:
+    a. Ils nous évitent de gérer les niveaux depuis le code;
+    b. Ils nous permettent de séparer les scripts et les autres contenus (le code seulement pour les mécaniques et le Level Editor pour les maps, etc);
+    c. Ils permettent un gain de temps énorme;
+    e. Permet une scalabilité pour les gros jeux (grandes quantité de niveaux a concevoir);
+    f. Réutilisation des niveaux créer s’ils sont stockées(JSON, XML ou format personnalise);
 
 ### Comment configurer le projet
 
 1. Au prealable telecharger ImGui depuis le github officiel (voir plus loin) et le mettre dans thirdparty/imgui
 2. Tout les nom d'images contenues dans Assets/Tiles doivent respecter le format id_nom_de_iamge.png pour pouvoir etre enregistrer dans le Tileset
 du projet et etre utiliser en tant que tuile. 
-3. Si dans le Dossier Assets/Tiles il y a deux images dont le nom commence par le meme id, l'un sera pris et l'autre non
-4. Garder le Tileset telquel pour eviter les surprise lors du chargement d'un niveau
 
 ## 📦 Structure du Projet
 
@@ -24,6 +29,7 @@ Level Editor 2D/
 ├── Build/                # Application
 ├── src/
 │   ├── Core/             # Base de l'Editor
+|   |   └── Components.h  # Classe pour la gestion des composants
 │   │   └── Level.h       # Classe principale
 │   ├── App.h             # Creation de l'Application
 │   └── GUI.h             # Gestion de l'Interface Utilisateur
@@ -40,8 +46,9 @@ Level Editor 2D/
 - **Charger** : charger un niveau depuis un fichier txt conforme
 - **Layer** : gestion des couches (dispo: sol, joueur, ui)
 - **RenduSeul** : Possibilite de rendre chaque couche individuellement
-- **Camera** : camera (vue sur la scene)
-- **Lumiere** : Eclairage simple a partir de textures de lumiere (.png dans Assets/Lights et lightmap) et eclairage global avec couche noire transparente
+- **Camera** : camera (vue sur la scene) et zoom
+- **Lumiere** : Eclairage simple a partir de textures de lumiere (.png dans Assets/Lights et lightmap) et eclairage global avec cache noire transparente
+- **Animation** : animation a base d'un atlas de facon lineaire
 
 ## 🚀 Installation et Utilisation
 
@@ -96,23 +103,30 @@ python3 Run.py
 #Windows
 python Run.py
 
+## Nettoyer
+#Linux
+python3 Clean.py
+
+#Windows
+python Clean.py
+
 ```
 
 ### Actions clavier/souris
-1. Ctrl+S : sauvegarder le niveau 
-2. Ctrl+O : Charger un niveau 
-3. R : Recentrer la camera scene
-4. T : Mettre a jour le tile set si l'on a ajouter une image pendant que le programme tournait
-5. Boutton droit de la souris : maintenir et deplacer la souris pour deplacer la camera scene
 
-### Limites
+1. **Ctrl+S** : sauvegarder le niveau 
+2. **Ctrl+O** : Charger un niveau 
+3. **R** : Recentrer la camera scene
+4. **T** : Mettre a jour le tile set si l'on a ajouter une image pendant que le programme tourne
+5. **Right Mouse Button** : maintenir et deplacer la souris pour deplacer la camera scene (panning)
+6. **Mouse Wheel** : gestion du zoom
 
-1. Difficultes a changer les positions des textures du aux differences positionGrille (reelle) et positionEcran (prenant non seulement en compte l'ecran mais aussi la camera).
+### Extension possibles
 
-2. Le systeme de lumiere est tres basique et ne gere pas les obstacles.
-3. Pour le moment l'enregistrement des proprietes de scene (eclairage, etc) n'est pas encore possible
-4. Pas de systeme d'undo/redo
-5. Pas d'augmentation du nombre de couche
-6. La vitesse de deplacement des couche est uniforme: tout les elements de la couche "UI" doivent etre a la meme position a l'ecran 
-meme si l'on deplace les autres object donc les autres couches ("Sol", "Joueur")
+1. Amelioration du systeme d'eclairage.
+2. Systeme de sauvegarde et de chargements plus robuste
+3. Systeme d'undo/redo
+4. Augmentation du nombre de couche
+5. Donner une vitesse de deplacement unique a chaque couche
+6. Ajouter plusieurs components
 

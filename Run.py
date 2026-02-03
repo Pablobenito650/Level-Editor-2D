@@ -6,6 +6,7 @@ build_dir = Path("build")
 platform = sys.platform
 output_name = "LevelEditor.exe" if platform == "win32" else "LevelEditor"
 
+# Lancement de l'application
 def run():
     output_path = build_dir / output_name
     if output_path.exists():

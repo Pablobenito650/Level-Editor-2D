@@ -4,6 +4,7 @@ from pathlib import Path
 
 build_dir = Path("build")
 
+# Nettoyage
 def clean():
     if build_dir.exists():
         shutil.rmtree(build_dir)

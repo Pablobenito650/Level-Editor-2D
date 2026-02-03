@@ -9,12 +9,14 @@ namespace minieditor
         ImGui::CreateContext();
         ImGui::StyleColorsDark();
 
+        // Type de rendu
         ImGui_ImplSDL3_InitForSDLRenderer(window, renderer);
         ImGui_ImplSDLRenderer3_Init(renderer);
     }
 
     void GUI::TestGUI(SDL_Renderer* renderer)
     {
+        // Debut de frame ImGui
         ImGui_ImplSDLRenderer3_NewFrame();
         ImGui_ImplSDL3_NewFrame();
         ImGui::NewFrame();
@@ -25,11 +27,20 @@ namespace minieditor
             {
                 if(ImGui::BeginMenu("File"))
                 {
+                    // Option pour commencer un nouveau niveau
+                    if(ImGui::MenuItem("New", "None"))
+                    {
+                        Level::StartNewLevel();
+                    }
+
+                    // Option de sauvegarde
+                    ImGui::Separator();
                     if(ImGui::MenuItem("Save", "Ctrl+S"))
                     {
                         Level::SaveLevel();
                     }
 
+                    // Option de chargement
                     ImGui::Separator();
                     if(ImGui::MenuItem("Load", "Ctrl+O"))
                     {
@@ -39,8 +50,10 @@ namespace minieditor
                     ImGui::EndMenu();
                 }
 
+                // Menu Gameobject
                 if(ImGui::BeginMenu("GameObject"))
                 {
+                    // Ajouter une Local Lightning
                     if(ImGui::MenuItem("Light"))
                     {
                         Level::AddLight();
@@ -55,7 +68,7 @@ namespace minieditor
             ImGui::SetNextWindowPos(ImVec2(0, 20));
             ImGui::SetNextWindowSize(ImVec2(250, 340));
 
-            // Creation de la fenetre Dear ImGUI
+            // Creation de la fenetre principale
             ImGui::Begin("Project", nullptr, ImGuiWindowFlags_NoMove);
 
             // Gestion du backGround
@@ -70,11 +83,15 @@ namespace minieditor
 
             ImGui::Separator();
 
-            // Choisir le nom de la scene
+            /*
+                Choisir le nom de la scene (L'option rename n'est pas pris en charge)
+                Le nom du niveau est celui donner lors de la premiere sauvegarde
+            */ 
             ImGui::InputText("Scene", &Level::sFileName);
 
             ImGui::Separator();
 
+            // Gestion de l'eclairage globale de la scene (nuit ou jour)
             ImGui::Text("Global Lightning");
             ImGui::SliderInt("Intensity", &Level::sGlobalLightIntensity, 0, 255);
             ImGui::SliderInt("Ambient", &Level::sAmbient, 0, 255);
@@ -105,7 +122,7 @@ namespace minieditor
             ImGui::Separator();
             
             ImGui::Text("Tiles Picker");
-            // Afficher dans la fenetre ImGui toutes les images presentes dans les Assets en les rendant selectionnable (tileSet)
+            // Afficher dans la fenetre ImGui toutes les images presentes dans les Assets en les rendant selectionnable (TileSet)
             ImGui::Columns(COLUMNS, nullptr, false);
 
             for(const auto& tile : Level::sTileSet)
@@ -126,16 +143,49 @@ namespace minieditor
             ImGui::End();
         }
 
-        {
-            ImGui::SetNextWindowPos(ImVec2(874, 20));
-            ImGui::SetNextWindowSize(ImVec2(150, 340));
+        /*
+            Fenetre pour L'inspection et la modification d'une tile
+            Modification de :
+            - La postion
+            - Nom
+        */ 
 
-            ImGui::Begin("Inspector", nullptr, ImGuiWindowFlags_NoMove);
+        {
+            ImGui::SetNextWindowPos(ImVec2(864, 20));
+            ImGui::SetNextWindowSize(ImVec2(160, 340));
+
+            ImGui::Begin("Tile Inspector", nullptr, ImGuiWindowFlags_NoMove);
             
             Inspector();
 
             ImGui::End();
         }
+
+        /*
+            Fenetre pour L'inspection et la modification d'une light
+            Modification de :
+            - La couleur
+            - La postion
+            - status d'activation
+            - Nom
+        */ 
+        {
+            ImGui::SetNextWindowPos(ImVec2(864, 652));
+            ImGui::SetNextWindowSize(ImVec2(160, 340));
+
+            ImGui::Begin("Lightning Settings", nullptr, ImGuiWindowFlags_NoMove);
+
+            if(Level::sLights.size() > 0)
+            {
+                LightingSettings();
+            }
+
+            ImGui::End();
+        }
+
+        /*
+            Liste des lights presentent dans la scene sous forme de bouttons
+        */
 
         {
             ImGui::SetNextWindowPos(ImVec2(0, 652));
@@ -156,29 +206,34 @@ namespace minieditor
     void GUI::Inspector()
     {
         ImGui::Separator();
-        ImGui::Text("Tile Settings");
 
         // Afficher la tile selectionner dans la scene
         if(Level::sModeSelection && Level::sLayers[Level::sCurrentLayerID].mHierarchie.size() > 0)
         {
             Level::ResetSelectionStatus();
 
+            /*
+                Recuperation de la tile selectionnee a partir de sIndex
+             */
             TileInScene& selectedTile = Level::sLayers[Level::sCurrentLayerID].mHierarchie[Level::sIndex];
             selectedTile.mIsSelected = true;
 
             int id = selectedTile.mID;
+
+            // index ici corresspond a l'index (dans sTileSet) de la texture que l'on va afficher
             int index = Level::FindID(id);
 
-            // Afficher sa position dans le plan
+            // Position dans la grille
             int x = selectedTile.mGridX;
             int y = selectedTile.mGridY;
 
+            // Supprimer une tile en fonction de sa position dans la grille
             if(ImGui::Button("Suppr"))
             {
                 Level::RemoveTile(x, y);
             }
 
-            // Afficher l'image definissant la tuile
+            // Afficher la texture
             ImTextureID tex = (ImTextureID)Level::sTileSet[index].mTexture;
             ImGui::Image(tex, ImVec2(4*TILE_SIZE, 4*TILE_SIZE));
 
@@ -186,10 +241,27 @@ namespace minieditor
             ImGui::InputText("Name", &selectedTile.mName);
             ImGui::Text("ID %d", id);
 
-            ImGui::Text("Position X %d  Y %d", x * Level::sTileSize, y * Level::sTileSize);
+            // Definir les limites de position
+            const int limitX = Level::sGridWidth * Level::sTileSize - Level::sTileSize;
+            const int limitY = Level::sGridHeight * Level::sTileSize - Level::sTileSize;
+
+            // SliderFloat pour la modification des positions de la tile
+            ImGui::Text("Position" );
+            ImGui::SliderFloat("X ", &selectedTile.mPosX, 0, limitX);
+            ImGui::SliderFloat("Y ", &selectedTile.mPosY, 0, limitY);
+
+            ImGui::Text("Components");
+
+            if(selectedTile.mIsAnimating)
+            {
+                ImGui::Text("Animation");
+                ImGui::Checkbox("Loop", &selectedTile.mAnim.mLoop);
+                ImGui::Text("Frame Count %d", selectedTile.mAnim.mFrameCount);
+                ImGui::Text("Current Frame %d", selectedTile.mAnim.mCurrentFrame);
+            }
         }
 
-        // Afficher la tile (a placee) selectionnee en grand avec plus de detail
+        // Afficher la tile selectionnee du tableau sTileSet
         if(Level::sCurrentTileID != -1 && !Level::sModeSelection)
         {
             int index = Level::FindID(Level::sCurrentTileID);
@@ -205,17 +277,6 @@ namespace minieditor
             ImGui::Text("%s", texName.c_str());
             ImGui::Text("ID %d", id);
         }
-
-        ImGui::Separator();
-
-        ImGui::Separator();
-
-        ImGui::Text("Light Settings");
-
-        if(Level::sLights.size() > 0)
-        {
-            LightingSettings();
-        }
     }
 
     void GUI::LightHierarchie()
@@ -225,6 +286,7 @@ namespace minieditor
             return;
         }
 
+        // Liste des lumieres dans la scene sous forme de button
         for(size_t i = 0; i < Level::sLights.size(); i++)
         {
             ImGui::Separator();
@@ -240,18 +302,26 @@ namespace minieditor
 
     void GUI::LightingSettings()
     {
+        // Supprimer une lumiere en fonction de son index dans le tableau Level::sLight
         if(ImGui::Button("Supprimer"))
         {
             Level::RemoveLight(mIndex);
             mIndex = 0;
         }
 
+        // Activer ou desactiver la lumiere
         ImGui::Checkbox("A", &Level::sLights[mIndex].mActivate);
         ImGui::SameLine();
+
+        // Modification du nom de la lumiere
         ImGui::InputText("Name", &Level::sLights[mIndex].mName);
 
         ImGui::Text("Couleur et intensite");
 
+        /*
+            Modification de la couleur des rayons lumineux
+            avec le choix de les afficher ou non (bool mIsRayonnant)
+        */
         int x = Level::sLights[mIndex].mColorMod.r;
         int y = Level::sLights[mIndex].mColorMod.g;
         int z = Level::sLights[mIndex].mColorMod.b;
@@ -265,9 +335,11 @@ namespace minieditor
         Level::sLights[mIndex].mColorMod.g = y;
         Level::sLights[mIndex].mColorMod.b = z;
 
+        // Definir les limites de position de la lumiere dans la scene
         const int limitX = Level::sGridWidth * Level::sTileSize - Level::sLightSize;
         const int limitY = Level::sGridHeight * Level::sTileSize - Level::sLightSize;
-    
+        
+        // SliderInt pour la modification des positions
         ImGui::Text("Position" );
         ImGui::SliderInt("X ", &Level::sLights[mIndex].mFixedPosX, 0, limitX);
         ImGui::SliderInt("Y ", &Level::sLights[mIndex].mFixedPosY, 0, limitY);  

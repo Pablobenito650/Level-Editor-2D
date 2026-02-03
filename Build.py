@@ -18,12 +18,17 @@ class Builder:
         self.object_files = {}
         self.output_name = "LevelEditor.exe" if self.platform == "win32" else "LevelEditor"
 
-    # compilation
+    # compilation 
+    # Ici on genere les fichiers objets de chaque fichier source utile au projet
     def compile_sources(self, sourceFile: Path) -> Path:
+
+        # Recuperation des includes
         includes = self.get_includes()
         
+        # Fichier objet corresponadant
         objectFile = self.object_dir  / f"{sourceFile.stem}.o"
 
+        # Build incremental (compiler seulement un fichier non a jour)
         if objectFile.exists():
             sourceTime = os.path.getmtime(sourceFile)
             objectTime = os.path.getmtime(objectFile)
@@ -32,6 +37,7 @@ class Builder:
                 self.object_files[str(sourceFile)] = str(objectFile)
                 return objectFile
         
+        # commande de compilation
         compilerCmd = [
             self.compiler, 
             *includes,
@@ -40,6 +46,7 @@ class Builder:
             *self.compiler_flags
         ] 
 
+        # Execution de la commande 
         print(f"Compilation de {sourceFile.name}....")
         result = subprocess.run(compilerCmd, capture_output=True, text=True)
 
@@ -51,9 +58,13 @@ class Builder:
         self.object_files[str(sourceFile)] = str(objectFile)
         return objectFile
     
+    # Liaison des fichiers
     def LinkObjects(self, objectFiles: list, outputName: Path) -> bool:
+
+        # Recuperation des includes
         includes = self.get_includes()
 
+        # Commande de linking
         linkCmd = [
             self.compiler,
             *includes,
@@ -68,6 +79,7 @@ class Builder:
         else:
             linkCmd.extend(["-lSDL3", "-lSDL3_image", "-ldl", "-lpthread", "-lGL"])
 
+        # Lancement de la commande
         print(f"Linking vers {outputName.name}....")
         result = subprocess.run(linkCmd, capture_output=True, text=True)
 
@@ -80,10 +92,14 @@ class Builder:
         print(f"Executable cree: {outputName}")
         return True
     
+    # copie des resources necessaires
     def CopyAssets(self):
-        # copie des resources necessaires
         print("\nCopie des ressources....")
+
+        # Copie des assets
         shutil.copytree(self.assets_dir, os.path.join(self.build_dir, "Assets"), dirs_exist_ok=True)
+
+        # Copie des librairies (DLL)
         shutil.copytree(self.ressources_dir, self.build_dir, dirs_exist_ok=True)
         print("Assets copies avec succes")
         
@@ -95,15 +111,18 @@ class Builder:
 
         objectFiles = []
 
+        # compilation (generation des fichiers objet)
         for sourceFile in sourceFiles:
             objectFile = self.compile_sources(sourceFile)
             objectFiles.append(objectFile)
         
         outputPath = self.build_dir / self.output_name
 
+        # Linking et creation de l'application
         if not self.LinkObjects(self.object_files, outputPath):
             return 1
         
+        # Copie des assets
         self.CopyAssets()
 
         print("\nBuild terminer avec succes!")
@@ -116,6 +135,7 @@ class Builder:
     def find_sources(self) -> bool:
         sources = list(Path("src").rglob("*.cpp"))
 
+        # Fichier ImGui necessaires
         if(self.imgui_dir).exists():
             sources.extend(list(self.imgui_dir.glob("*.cpp")))
             sources.extend(list(self.imgui_dir.glob("backends/imgui_impl_sdl3.cpp")))

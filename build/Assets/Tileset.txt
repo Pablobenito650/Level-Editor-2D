@@ -18,4 +18,4 @@ MINIEDITORTILESET
 15 15_enter_shop.png
 16 16_grass.png
 17 17_mangrove_1.png
-99 99_shoals_shallow_water.png
+18 18_Animated.png

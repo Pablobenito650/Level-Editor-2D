@@ -18,6 +18,7 @@ namespace minieditor
     bool Level::sIsLoading = false;
     bool Level::sSingleLayerRendering = false;
     bool Level::sCameraIsMoving = false;
+    bool Level::sIsStartingNew = false;
 
     int Level::sGridHeight = 31;
     int Level::sGridWidth = 32;
@@ -54,18 +55,34 @@ namespace minieditor
             // Ajouter ou retirer une tile de la grille si on est pas en mode selection de tuile
             if(!sModeSelection)
             {
-                // Ajouter ou retirer en fonction de l'id (-1 pour retirer)
+                // Ajouter une tile dans la scen en fonction de l'id
                 sLayers[sCurrentLayerID].mGrid[yPos][xPos] = sCurrentTileID;
 
+                // Deselectionner toutes les tiles de la couche courante
                 ResetSelectionStatus();
                 
-                // Ajouter la tuile a la scene (hierarchie de la couche courante)
+                /*
+                    Ajouter la tuile a la scene (hierarchie de la couche courante)
+                    Assignation des valeurs
+                */ 
                 TileInScene tileInScene;
                 tileInScene.mID = sCurrentTileID;
                 tileInScene.mName = "Tile";
                 tileInScene.mIsSelected = true;
                 tileInScene.mGridX = xPos;
                 tileInScene.mGridY = yPos;
+                tileInScene.mPosX = xPos * sTileSize;
+                tileInScene.mPosY = yPos * sTileSize;
+
+                int index = FindID(sCurrentTileID);
+                float w = 0.0f, h = 0.0f;
+
+                Components::SetAnimationFromAtlas(sTileSet[index].mTexture, tileInScene.mAnim, w, h);
+
+                if((w > 32.0f) || (h > 32.0f))
+                {
+                    tileInScene.mIsAnimating = true;
+                }
 
                 sLayers[sCurrentLayerID].mHierarchie.push_back(tileInScene);
             }
@@ -76,25 +93,43 @@ namespace minieditor
 
     void Level::RemoveTile(int gridX, int gridY)
     {
+        /*
+            Supprimer une tile
+            - gridX et gridY sont les position grille (tableau nGrid de la couche courante) de la tile a supprimer
+            - index c'est la position des proprietes de cette tile dans le tableau mHierarchie de la couche courante
+        */
+        
+        // On cherche d'abord l'index
         int index = FindIDInScene(sCurrentLayerID, gridX, gridY);
+
+        // On supprime la tile dans la grille principale
         sLayers[sCurrentLayerID].mGrid[gridY][gridX] = -1;
+
+        // On supprime les proprietes de cette tile 
         sLayers[sCurrentLayerID].mHierarchie.erase(sLayers[sCurrentLayerID].mHierarchie.begin() + index);
     }
 
-    void Level::Update()
+    void Level::Update(float deltatime)
     {
         TilePlacement();
+        UpdateAnimations(deltatime);
     }
 
     void Level::Render(SDL_Renderer* renderer)
-    {      
-        if(sIsLoading)
+    {    
+        /*
+            Arreter le rendu du niveau si:
+            - On est entrain d'en charger un autre
+            - On est entrain d'en commencer un autre
+        */ 
+        if(sIsLoading | sIsStartingNew)
         {
             return;
         }
 
         SDL_SetRenderTarget(renderer, nullptr);
 
+        // Cas ou on est en rendu mono-couche (rendre seulement les tiles de la couche courante)
         if(sSingleLayerRendering)
         {
             for (int y = 0; y < sGridHeight; y++)
@@ -104,14 +139,21 @@ namespace minieditor
                     int tileID = sLayers[sCurrentLayerID].mGrid[y][x];
                     if(tileID == -1) continue; 
                     
-                    // Trouver l'index de la dans la hierarchie de la couche courante
+                    // Trouver l'index de tile la dans la hierarchie de la couche courante
                     int indexA = FindIDInScene(sCurrentLayerID, x, y);
 
+                    // Propriete de la texture en fonction de la camera et du zoom
                     SDL_FRect rect;
-                    rect.x = (x * sTileSize - mCamera.x) * mCamera.mZoom;
-                    rect.y = (y * sTileSize - mCamera.y) * mCamera.mZoom;
+                    rect.x = (sLayers[sCurrentLayerID].mHierarchie[indexA].mPosX - mCamera.x) * mCamera.mZoom;
+                    rect.y = (sLayers[sCurrentLayerID].mHierarchie[indexA].mPosY - mCamera.y) * mCamera.mZoom;
                     rect.w = sTileSize * mCamera.mZoom;
                     rect.h = sTileSize * mCamera.mZoom;
+
+                    SDL_FRect src;
+                    src.x = sLayers[sCurrentLayerID].mHierarchie[indexA].mAnim.mCurrentFrame * sTileSize;
+                    src.y = 0.0f;
+                    src.h = sTileSize;
+                    src.w = sTileSize;
 
                     // Trouver l'index correspondant a l'id dans le tileset
                     int indexB = FindID(tileID);
@@ -119,13 +161,22 @@ namespace minieditor
                     SDL_Texture* tex = sTileSet[indexB].mTexture;
                     if(!tex)
                     { 
+                        // Carre de debug si texture non charger
                         SDL_SetRenderDrawColor(renderer, 255, 0, 255, 255);
                         SDL_RenderRect(renderer, &rect);
                     }
                     else
                     {
-                        SDL_RenderTexture(renderer, tex, nullptr, &rect);
+                        if(sLayers[sCurrentLayerID].mHierarchie[indexA].mIsAnimating)
+                        {
+                            SDL_RenderTexture(renderer, tex, &src, &rect);
+                        }
+                        else
+                        {
+                            SDL_RenderTexture(renderer, tex, nullptr, &rect);
+                        }
 
+                        // Affichage de la texture et du carre si la tile est selectionnee
                         if(sLayers[sCurrentLayerID].mHierarchie[indexA].mIsSelected)
                         {
                             DrawSelectionSquare(renderer, rect.x, rect.y, rect.w);
@@ -136,6 +187,7 @@ namespace minieditor
         }
         else
         {
+            // Rendu multi-couche
             for (int l = 0; l < sLayerCount; l++)
             {
                 for (int y = 0; y < sGridHeight; y++)
@@ -148,11 +200,18 @@ namespace minieditor
                         // Trouver l'index de la dans la hierarchie de la couche courante
                         int indexA = FindIDInScene(l, x, y);
 
+                        // Propriete de la texture en fonction de la camera et du zoom
                         SDL_FRect rect;
-                        rect.x = (x * sTileSize - mCamera.x) * mCamera.mZoom;
-                        rect.y = (y * sTileSize - mCamera.y) * mCamera.mZoom;
+                        rect.x = (sLayers[l].mHierarchie[indexA].mPosX - mCamera.x) * mCamera.mZoom;
+                        rect.y = (sLayers[l].mHierarchie[indexA].mPosY - mCamera.y) * mCamera.mZoom;
                         rect.w = sTileSize * mCamera.mZoom;
                         rect.h = sTileSize * mCamera.mZoom;
+
+                        SDL_FRect src;
+                        src.x = sLayers[l].mHierarchie[indexA].mAnim.mCurrentFrame * sTileSize;
+                        src.y = 0.0f;
+                        src.h = sTileSize;
+                        src.w = sTileSize;
                         
                         // Trouver l'index correspondant a l'id dans le tileset
                         int indexB = FindID(tileID);
@@ -165,7 +224,14 @@ namespace minieditor
                         }
                         else
                         {
-                            SDL_RenderTexture(renderer, tex, nullptr, &rect);
+                            if(sLayers[l].mHierarchie[indexA].mIsAnimating)
+                            {
+                                SDL_RenderTexture(renderer, tex, &src, &rect);
+                            }
+                            else
+                            {
+                                SDL_RenderTexture(renderer, tex, nullptr, &rect);
+                            }
 
                             if(l == sCurrentLayerID && sLayers[l].mHierarchie[indexA].mIsSelected)
                             {
@@ -177,6 +243,7 @@ namespace minieditor
             }
         }
 
+        // Rendu dess lumieres au dessus des tiles
         RenderLight(renderer);
     }
 
@@ -191,6 +258,7 @@ namespace minieditor
             mPlace = true;
         }
 
+        // Panning
         if(event.type == SDL_EVENT_MOUSE_MOTION && (event.motion.state & SDL_BUTTON_RMASK))
         {
             sCameraIsMoving = true;
@@ -375,12 +443,26 @@ namespace minieditor
                 levelProps << sLayers[l].mHierarchie[i].mID << " ";
                 levelProps << sLayers[l].mHierarchie[i].mName << " ";
                 levelProps << sLayers[l].mHierarchie[i].mGridX << " ";
-                levelProps << sLayers[l].mHierarchie[i].mGridY << "\n";
+                levelProps << sLayers[l].mHierarchie[i].mGridY << " ";
+                levelProps << sLayers[l].mHierarchie[i].mPosX << " ";
+                levelProps << sLayers[l].mHierarchie[i].mPosY << " ";
+                levelProps << sLayers[l].mHierarchie[i].mIsAnimating << " ";
+
+                if(sLayers[l].mHierarchie[i].mIsAnimating)
+                {
+                    levelProps << sLayers[l].mHierarchie[i].mAnim.mFrameCount << "\n";
+                }
+                else
+                {
+                    levelProps << "\n";
+                }
+
             }
             
             levelProps << "\n";
         }
 
+        // Enregistrement des lumiere presentent dans la scene
         levelProps << "\n";
         levelProps << "LIGHTSIZE " << sLights.size() << "\n";
 
@@ -438,6 +520,7 @@ namespace minieditor
 
         sLayers.resize(sLayerCount);
 
+        // Recuperation des infos de grille principale
         for (int l = 0; l < sLayerCount; l++)
         {
             file >> token >> sLayers[l].mName;
@@ -488,9 +571,18 @@ namespace minieditor
                 levelProps >> sLayers[l].mHierarchie[i].mName;
                 levelProps >> sLayers[l].mHierarchie[i].mGridX;
                 levelProps >> sLayers[l].mHierarchie[i].mGridY;
+                levelProps >> sLayers[l].mHierarchie[i].mPosX;
+                levelProps >> sLayers[l].mHierarchie[i].mPosY;
+                levelProps >> sLayers[l].mHierarchie[i].mIsAnimating;
+
+                if(sLayers[l].mHierarchie[i].mIsAnimating)
+                {
+                    levelProps >> sLayers[l].mHierarchie[i].mAnim.mFrameCount;
+                }
             }
         }
 
+        // Recuperation des lumieres
         levelProps >> getter >> size;
         sLights.resize(size);
 
@@ -661,6 +753,7 @@ namespace minieditor
 
     void Level::RenderBackGroundGrid(SDL_Renderer* renderer)
     {
+        // Dessiner les limites du niveaux (carre blanc non plein)
         SDL_FRect limits;
         limits.x = (0.0f - mCamera.x) * mCamera.mZoom;
         limits.y = (0.0f - mCamera.y) * mCamera.mZoom;
@@ -673,6 +766,7 @@ namespace minieditor
 
     void Level::ResetSelectionStatus()
     {
+        // Deselection des tiles de la couche courante
         for(auto& tile : sLayers[sCurrentLayerID].mHierarchie)
         {
             tile.mIsSelected = false;
@@ -681,6 +775,7 @@ namespace minieditor
 
     void Level::DrawSelectionSquare(SDL_Renderer* renderer, int x, int y, float size)
     {
+        // Carre de selection
         x = x - 1.0f;
         y = y - 1.0f;
         size = size + 1.0f;
@@ -692,12 +787,16 @@ namespace minieditor
 
     void Level::RenderLight(SDL_Renderer* renderer)
     {
+        // Rendu sur mLightMap
         SDL_SetRenderTarget(renderer, mLightMap);
 
+        // Rendu du cache d'eclairage global (jour - nuit)
+        // SDL_BLENDMODE_BLEND pour la trensparence
         SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
         SDL_SetRenderDrawColor(renderer, sAmbient, sAmbient, sAmbient, sGlobalLightIntensity);
         SDL_RenderFillRect(renderer, NULL);
 
+        // Update et affichache des lumieres
         for(auto& light : sLights)
         {
             light.mProps.x = (light.mFixedPosX - mCamera.x) * mCamera.mZoom;
@@ -711,9 +810,11 @@ namespace minieditor
             }
         }
 
+        // Revenir en rendu ecran
         SDL_SetRenderTarget(renderer, nullptr);
         SDL_RenderTexture(renderer, mLightMap, nullptr, nullptr);
 
+        // Affichage des rayon lumineux de la texture de lumiere
         for(auto& light : sLights)
         {
             if(light.mIsRayonnant && light.mActivate)
@@ -739,8 +840,10 @@ namespace minieditor
             return false;
         }
 
+        // SDL_BLENDMODE_MOD pour la modularite avec les pixels en dessous
         SDL_SetTextureBlendMode(mLightMap, SDL_BLENDMODE_MOD);
 
+        // Texture de lumiere
         mLightTexture = IMG_LoadTexture(renderer, "build/Assets/Lights/light.png");
         if(!mLightTexture)
         {
@@ -762,13 +865,16 @@ namespace minieditor
             return;
         }
 
+        // SDL_BLENDMODE_ADD calcul d'addition avec les pixels en dessous
         SDL_SetTextureBlendMode(light.mTexture, SDL_BLENDMODE_ADD);
         
+        // Couleur initiale des rayons
         light.mColorMod.r = 155;
         light.mColorMod.b = 155;
         light.mColorMod.g = 155;
         light.mColorMod.a = 255;
 
+        // pos et size initiale
         light.mProps = SDL_FRect{
             512.0f, 
             496.0f, 
@@ -779,6 +885,7 @@ namespace minieditor
         light.mFixedPosX = light.mProps.x;
         light.mFixedPosY = light.mProps.y;
 
+        // Nom unique
         std::string name = "Light";
         light.mName = name + std::to_string(sNextID);
 
@@ -789,7 +896,88 @@ namespace minieditor
 
     void Level::RemoveLight(int index)
     {
+        // supprimer une lumiere de la scene
         sLights.erase(sLights.begin() + index);
+    }
+
+    void Level::StartNewLevel()
+    {
+        // Commencer un nouveau niveau ce qui implique reinitialiser le necessaire
+
+        sIsStartingNew = true;
+
+        // Reinitialisation des valeurs
+        sAmbient = 255;
+        
+        sFileName = "Untitled";
+
+        sIndex = 0;
+        sNextID = 0;
+        sGlobalLightIntensity = 100;
+
+        // Mise a vide du niveau
+        for (int l = 0; l < sLayerCount; l++)
+        {
+            for (int y = 0; y < sGridHeight; y++)
+            {
+                for (int x = 0; x < sGridWidth; x++)
+                {
+                    sLayers[l].mGrid[y][x] = -1;
+                } 
+            }
+            
+            sLayers[l].mHierarchie.resize(0);
+        }
+
+        // Destruction des texture qui ne seront plus utile
+        for(auto& light : sLights)
+        {
+            SDL_DestroyTexture(light.mTexture);
+        }
+
+        // Suppression des lumieres exixtantes
+        sLights.resize(0);
+
+        sIsStartingNew = false;
+    }
+
+    void Level::UpdateAnimations(float deltatime)
+    {
+        for (int l = 0; l < sLayerCount; l++)
+        {
+            for(auto& tile : sLayers[l].mHierarchie)
+            {
+                if(tile.mIsAnimating)
+                {
+                    Animate(deltatime, tile);
+                }
+            }
+        }
+    }
+
+    void Level::Animate(float deltatime, TileInScene& tile)
+    {
+        tile.mAnim.mTimer += deltatime;
+
+        if(tile.mAnim.mTimer >= tile.mAnim.mFrameTime)
+        {
+            tile.mAnim.mTimer -= tile.mAnim.mFrameTime;
+            // Avancer d'une frame
+            tile.mAnim.mCurrentFrame++;
+
+            if(tile.mAnim.mCurrentFrame >= (tile.mAnim.mFrameCount))
+            {
+                if(tile.mAnim.mLoop) // Recommencer a la premeire frame si le loop time est activer
+                {
+                    tile.mAnim.mCurrentFrame = 0;
+                }
+                else
+                {
+                    // Rester sur la derneire frame
+                    tile.mAnim.mCurrentFrame = tile.mAnim.mFrameCount - 1;
+                }
+            }
+        }
     }
 }
 
