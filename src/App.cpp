@@ -10,7 +10,7 @@ namespace minieditor
             SDL_Init(SDL_INIT_VIDEO);
 
             // Flags et fenetre
-            SDL_WindowFlags windowFlags = (SDL_WindowFlags)(SDL_WINDOW_HIDDEN);
+            SDL_WindowFlags windowFlags = (SDL_WindowFlags)(SDL_WINDOW_HIDDEN | SDL_WINDOW_FULLSCREEN);
             mWindow = SDL_CreateWindow("Level Editor", mWidth, mHeight, windowFlags);
             if(mWindow == nullptr)
             {
@@ -40,6 +40,7 @@ namespace minieditor
                 - InitTiles()    Chargement des textures a utiliser et stockage comme assets dans le tableau mLevel.mTileSet
                 - InitLight()    Chargement de texture de lumiere pour le mini systeme de lumiere
             */
+
             mLevel.WriteTileSet();
             mLevel.InitTiles(mRenderer);
             mLevel.InitLight(mRenderer);
@@ -92,6 +93,8 @@ namespace minieditor
         if(event.type == SDL_EVENT_QUIT)
             mIsRunning = false;
         if(event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED && event.window.windowID == SDL_GetWindowID(mWindow))
+            mIsRunning = false;
+        if(event.type == SDL_EVENT_KEY_DOWN && event.key.scancode == SDL_SCANCODE_ESCAPE)
             mIsRunning = false;
         
         // Evenements utiles pour la gestion du niveau

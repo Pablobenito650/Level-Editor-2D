@@ -75,7 +75,7 @@ class Builder:
 
         # gestion plateforme
         if self.platform == "win32":
-            linkCmd.extend(["-lSDL3", "-lSDL3_image", "-limm32", "-loleaut32"])
+            linkCmd.extend(["-LC:\\msys64\\mingw64\\lib", "-lSDL3", "-lSDL3_image", "-limm32", "-loleaut32"])
         else:
             linkCmd.extend(["-lSDL3", "-lSDL3_image", "-ldl", "-lpthread", "-lGL"])
 
@@ -150,6 +150,8 @@ class Builder:
             f"-I{self.imgui_dir}",
             f"-I{self.imgui_dir}/backends",
             f"-I{self.imgui_dir}/misc/cpp",
+            "-IC:\\msys64\\mingw64\\include",
+            "-IC:\\msys64\\mingw64\\include\\SDL3"
         ]
 
         return includes

@@ -75,8 +75,8 @@ namespace minieditor
      */
     struct Camera
     {
-        float x = 0.0f;
-        float y = 0.0f;
+        float x = -500.0f;
+        float y = -40.0f;
         float mZoom = 1.0f;
         const float mZoomSpeed = 0.1f;
         const float mMinZoom = 0.5f;
@@ -128,7 +128,7 @@ namespace minieditor
             int mMouseY;
             static int sIndex;  
             static int sAmbient;
-            static int sNextID;         
+            static int sNextID;        
 
             bool mPlace = false;
 

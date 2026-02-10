@@ -66,7 +66,7 @@ namespace minieditor
             }
 
             ImGui::SetNextWindowPos(ImVec2(0, 20));
-            ImGui::SetNextWindowSize(ImVec2(250, 340));
+            ImGui::SetNextWindowSize(ImVec2(250, 540));
 
             // Creation de la fenetre principale
             ImGui::Begin("Project", nullptr, ImGuiWindowFlags_NoMove);
@@ -151,8 +151,8 @@ namespace minieditor
         */ 
 
         {
-            ImGui::SetNextWindowPos(ImVec2(864, 20));
-            ImGui::SetNextWindowSize(ImVec2(160, 340));
+            ImGui::SetNextWindowPos(ImVec2(1670, 20));
+            ImGui::SetNextWindowSize(ImVec2(250, 540));
 
             ImGui::Begin("Tile Inspector", nullptr, ImGuiWindowFlags_NoMove);
             
@@ -170,8 +170,8 @@ namespace minieditor
             - Nom
         */ 
         {
-            ImGui::SetNextWindowPos(ImVec2(864, 652));
-            ImGui::SetNextWindowSize(ImVec2(160, 340));
+            ImGui::SetNextWindowPos(ImVec2(1670, 540));
+            ImGui::SetNextWindowSize(ImVec2(250, 540));
 
             ImGui::Begin("Lightning Settings", nullptr, ImGuiWindowFlags_NoMove);
 
@@ -188,8 +188,8 @@ namespace minieditor
         */
 
         {
-            ImGui::SetNextWindowPos(ImVec2(0, 652));
-            ImGui::SetNextWindowSize(ImVec2(250, 340));
+            ImGui::SetNextWindowPos(ImVec2(0, 540));
+            ImGui::SetNextWindowSize(ImVec2(250, 540));
 
             ImGui::Begin("Local Lighning", nullptr, ImGuiWindowFlags_NoMove);
 

@@ -20,8 +20,8 @@ namespace minieditor
     bool Level::sCameraIsMoving = false;
     bool Level::sIsStartingNew = false;
 
-    int Level::sGridHeight = 31;
-    int Level::sGridWidth = 32;
+    int Level::sGridHeight = 32;
+    int Level::sGridWidth = 31;
     int Level::sTileSize = 32;
     float Level::sLightSize = 256.0f;
     int Level::sLayerCount = 3;
@@ -366,7 +366,7 @@ namespace minieditor
             }
 
             // Creer la texture depuis l'images (.png)
-            tile.mTexture = IMG_LoadTexture(renderer, tilePath.c_str());
+            tile.mTexture = IMG_LoadTexture(renderer, tilePath.string().c_str());
             if(!tile.mTexture)
             {
                 std::cout << "Impossible de charger la texture " << tilePath << "\n";
@@ -622,8 +622,8 @@ namespace minieditor
     void Level::ResetCamera()
     {
         std::cout << "Camera remit a l'origin\n";
-        mCamera.x = 0.0f;
-        mCamera.y = 0.0f;
+        mCamera.x = -500.0f;
+        mCamera.y = -40.0f;
         mCamera.mZoom = 1.0f;
     }
 
@@ -755,12 +755,12 @@ namespace minieditor
     {
         // Dessiner les limites du niveaux (carre blanc non plein)
         SDL_FRect limits;
-        limits.x = (0.0f - mCamera.x) * mCamera.mZoom;
-        limits.y = (0.0f - mCamera.y) * mCamera.mZoom;
+        limits.x = (-mCamera.x) * mCamera.mZoom;
+        limits.y = (-mCamera.y) * mCamera.mZoom;
         limits.h = sGridHeight * sTileSize * mCamera.mZoom;
         limits.w = sGridWidth  * sTileSize * mCamera.mZoom;
 
-        SDL_SetRenderDrawColor(renderer, 50, 50, 50, 255);
+        SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
         SDL_RenderRect(renderer, &limits);
     }
 
@@ -831,7 +831,7 @@ namespace minieditor
             renderer,
             SDL_PIXELFORMAT_RGBA8888,
             SDL_TEXTUREACCESS_TARGET,
-            1024, 992
+            1920, 1056
         );
 
         if(!mLightMap)

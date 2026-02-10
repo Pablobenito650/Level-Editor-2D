@@ -14,8 +14,8 @@ namespace minieditor
             SDL_Renderer* mRenderer;
 
             // Caracteristiques de la fenetre
-            const int mWidth = 1024;
-            const int mHeight = 992;
+            const int mWidth = 1920;
+            const int mHeight = 1056;
 
             // Arret de l'app
             bool mIsRunning = true;
